@@ -322,6 +322,33 @@ def m_toma(c, d):
     return "".join(o)
 
 
+def m_trama(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    # a dotted layout grid behind a screen frame laid out in rows, one row selected with its handles
+    for x in range(14, AW, 28):
+        for y in range(14, AH, 28):
+            o.append(f'<circle cx="{x}" cy="{y}" r="1.6" fill="{d}"/>')
+    fx, fy, fw, fh = 44, 64, 136, 252
+    o.append(f'<rect x="{fx}" y="{fy}" width="{fw}" height="{fh}" rx="12" fill="#FFFFFF"/>')
+    o.append(f'<rect x="{fx + 14}" y="{fy + 16}" width="64" height="10" rx="5" fill="{INK}"/>')
+    o.append(f'<rect x="{fx + 14}" y="{fy + 40}" width="{fw - 28}" height="70" rx="8" fill="{d}"/>')
+    for i in range(3):
+        y = fy + 126 + i * 30
+        o.append(f'<circle cx="{fx + 26}" cy="{y + 10}" r="9" fill="{c}"/>')
+        o.append(f'<rect x="{fx + 44}" y="{y + 5}" width="{(70, 52, 62)[i]}" height="9" rx="4.5" fill="{INK}"/>')
+    o.append(f'<rect x="{fx + 14}" y="{fy + fh - 40}" width="{fw - 28}" height="26" rx="13" fill="{INK}"/>')
+    # the selected row
+    sx, sy, sw, sh = fx + 8, fy + 150, fw - 16, 30
+    o.append(f'<rect x="{sx}" y="{sy}" width="{sw}" height="{sh}" fill="none" stroke="{INK}" stroke-width="2.5"/>')
+    for hx in (sx, sx + sw):
+        for hy in (sy, sy + sh):
+            o.append(f'<rect x="{hx - 5}" y="{hy - 5}" width="10" height="10" fill="#FFFFFF" stroke="{INK}" stroke-width="2"/>')
+    # the pointer
+    px, py = 152, 236
+    o.append(f'<path d="M{px},{py} L{px},{py + 30} L{px + 8},{py + 22} L{px + 14},{py + 35} L{px + 20},{py + 32} L{px + 14},{py + 20} L{px + 25},{py + 19} Z" fill="{INK}" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>')
+    return "".join(o)
+
+
 def m_vinilo(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     cx, cy, r = 96, 214, 150
@@ -473,6 +500,12 @@ def a_toma(c):
     return "".join(o)
 
 
+def a_trama(c):
+    return (f'<circle cx="{AL}" cy="{AYc}" r="4.5" fill="#FFFFFF" stroke="{c}" stroke-width="2"/>'
+            f'<path d="M{AL + 5},{AYc} C{AL + 30},{AYc - 22} {AR - 34},{AYc + 22} {AR - 10},{AYc}" fill="none" stroke="{INK}" stroke-width="1.6" stroke-dasharray="4 3"/>'
+            + arrowhead(AR, AYc, INK))
+
+
 def a_vinilo(c):
     return (f'<line x1="{AL}" y1="{AYc}" x2="{AR - 12}" y2="{AYc}" stroke="{c}" stroke-width="2.4" stroke-linecap="round"/>'
             + arrowhead(AR, AYc, c))
@@ -506,6 +539,7 @@ APPS = {
     "pulso": ("Pulso", "Animación y efectos visuales", "#7CC23A", "#5E9A27", m_pulso, a_pulso),
     "toma": ("Toma", "Edición de vídeo", "#DB45B5", "#B03091", m_toma, a_toma),
     "torno": ("Torno", "Diseño 3D paramétrico", "#C2A845", "#9E8530", m_torno, a_torno),
+    "trama": ("Trama", "Diseño de interfaces y prototipos", "#9A45E2", "#7A26C9", m_trama, a_trama),
     "vinilo": ("Vinilo", "Apple Music en tu escritorio", "#8B4AE6", "#6B33C2", m_vinilo, a_vinilo),
     "vortia": ("Vortia", "Simulación de fluidos (CFD)", "#3A8DF4", "#2470D8", m_vortia, a_vortia),
 }

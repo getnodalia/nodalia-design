@@ -18,6 +18,7 @@ propio que dice qué hace la app:
 | Pulso | editor de curvas y fotogramas clave | fotogramas clave |
 | Toma | visor, pistas de vídeo y forma de onda | fotogramas y «play» |
 | Torno | pieza torneada con su eje, giro de revolución y cota | eje de revolución |
+| Trama | pantalla maquetada en filas sobre una retícula, con una fila seleccionada y el puntero | conexión de prototipo discontinua |
 | Vinilo | disco con su brazo | flecha en el color de la app |
 | Vortia | perfil alar con líneas de corriente | línea de corriente |
 
