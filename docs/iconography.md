@@ -1,6 +1,6 @@
 # Iconografía
 
-**Estado: 501 iconos funcionales incluidos en `@nodalia/icons`.** Son dibujos originales de este proyecto (MIT). No se incluyen fuentes ni imágenes de terceros.
+**Estado: 697 iconos funcionales incluidos en `@nodalia/icons`.** Son dibujos originales de este proyecto (MIT). No se incluyen fuentes ni imágenes de terceros.
 
 ## El conjunto
 
@@ -15,7 +15,7 @@
 | `slides` | Presentaciones (Lámina) |
 | `design` | Dibujo vectorial e imagen: pluma, nodos, formas, Buscatrazos, degradados, trazos, licuar, alinear y distribuir, transformar (Pluma, Lienzo) |
 | `photo` | Revelado: exposición, contraste, temperatura (Luz) |
-| `media` | Reproducción, audio, vídeo y línea de tiempo (Vinilo, Toma, Pulso) |
+| `media` | Reproducción, audio, vídeo, línea de tiempo y edición de vídeo: marcar entrada y salida, insertar y sobrescribir, rizo, rodillo, desplazar, deslizar, anidar (Vinilo, Toma, Pulso) |
 | `mail` | Correo (Buzón) |
 | `sketch`, `model` | Croquis y modelado 3D (Forja, Torno, Vortia) |
 | `simulation`, `results` | Simulación y resultados (Vortia) |
