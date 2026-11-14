@@ -719,6 +719,141 @@ export const ICONS = {
     '<rect x="3.5" y="6" width="8" height="12" rx="1"/>',
     '<path d="M12.5 6H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 18h-6.5" stroke-dasharray="2 3"/>',
   ] },
+  // --- media: timeline editing (drawn for Toma, shared by every app that cuts video) ---
+  "play-reverse": { group: "media", fill: [0], body: [
+    '<path d="M16 5.5v13L5.5 12z"/>',
+  ] },
+  "mark-in": { group: "media", body: [
+    '<path d="M15.5 4H13a2 2 0 0 0-2 2v4l-2.5 2 2.5 2v4a2 2 0 0 0 2 2h2.5"/>',
+  ] },
+  "mark-out": { group: "media", body: [
+    '<path d="M8.5 4H11a2 2 0 0 1 2 2v4l2.5 2-2.5 2v4a2 2 0 0 1-2 2H8.5"/>',
+  ] },
+  "go-to-in": { group: "media", fill: [1], body: [
+    '<path d="M8 5H7a1.5 1.5 0 0 0-1.5 1.5V10L4 12l1.5 2v3.5A1.5 1.5 0 0 0 7 19h1"/>',
+    '<path d="M19.5 6.5v11L11 12z"/>',
+  ] },
+  "go-to-out": { group: "media", fill: [1], body: [
+    '<path d="M16 5h1a1.5 1.5 0 0 1 1.5 1.5V10l1.5 2-1.5 2v3.5A1.5 1.5 0 0 1 17 19h-1"/>',
+    '<path d="M4.5 6.5v11L13 12z"/>',
+  ] },
+  "previous-edit": { group: "media", fill: [1], body: [
+    '<path d="M6 5v14M4 5h4M4 19h4"/>',
+    '<path d="M19.5 6.5v11L11 12z"/>',
+  ] },
+  "next-edit": { group: "media", fill: [1], body: [
+    '<path d="M18 5v14M16 5h4M16 19h4"/>',
+    '<path d="M4.5 6.5v11L13 12z"/>',
+  ] },
+  "marker": { group: "media", fill: [0], body: [
+    '<path d="M7 4h10a1 1 0 0 1 1 1v8.5L12 20l-6-6.5V5a1 1 0 0 1 1-1z"/>',
+  ] },
+  "insert-edit": { group: "media", fill: [2], body: [
+    '<rect x="3.5" y="11" width="17" height="9" rx="1.5"/>',
+    '<path d="M12 11v9"/>',
+    '<path d="M8.5 3.5h7L12 8z"/>',
+  ] },
+  "overwrite-edit": { group: "media", fill: [1,2], body: [
+    '<rect x="3.5" y="11" width="17" height="9" rx="1.5"/>',
+    '<rect x="8" y="14" width="8" height="3" rx=".5"/>',
+    '<path d="M8.5 3.5h7L12 8z"/>',
+  ] },
+  "lift": { group: "media", body: [
+    '<rect x="3.5" y="13" width="17" height="7" rx="1.5"/>',
+    '<path d="M12 16.5V4"/>',
+    '<path d="M8 8l4-4 4 4"/>',
+  ] },
+  "extract": { group: "media", body: [
+    '<rect x="3.5" y="13" width="17" height="7" rx="1.5"/>',
+    '<path d="M12 16.5V4"/>',
+    '<path d="M8 8l4-4 4 4"/>',
+    '<path d="M6.5 16.5h2M15.5 16.5h2"/>',
+  ] },
+  "ripple-edit": { group: "media", fill: [2], body: [
+    '<path d="M13 4.5H9.5v15H13"/>',
+    '<path d="M3.5 12h6"/>',
+    '<path d="M14.5 8.5l5.5 3.5-5.5 3.5z"/>',
+  ] },
+  "rolling-edit": { group: "media", fill: [1,2], body: [
+    '<path d="M12 4.5v15M10.5 4.5h3M10.5 19.5h3"/>',
+    '<path d="M7 9 3.5 12 7 15z"/>',
+    '<path d="M17 9l3.5 3-3.5 3z"/>',
+  ] },
+  "rate-stretch": { group: "media", fill: [2,3,4,5], body: [
+    '<path d="M3.5 5v14M20.5 5v14"/>',
+    '<path d="M8 12h8"/>',
+    '<path d="M6 12l3.5-3v6z"/>',
+    '<path d="M18 12l-3.5-3v6z"/>',
+    '<circle cx="12" cy="5.5" r="1.5"/>',
+    '<circle cx="12" cy="18.5" r="1.5"/>',
+  ] },
+  "slip": { group: "media", fill: [2,3], body: [
+    '<path d="M3.5 5.5v13M20.5 5.5v13"/>',
+    '<path d="M8 4.5h8M8 19.5h8"/>',
+    '<path d="M6.5 12 9.5 9.5v5z"/>',
+    '<path d="M17.5 12l-3-2.5v5z"/>',
+  ] },
+  "slide-edit": { group: "media", fill: [1,2], body: [
+    '<path d="M9 4.5v15M15 4.5v15"/>',
+    '<path d="M3 12l3.5-3v6z"/>',
+    '<path d="M21 12l-3.5-3v6z"/>',
+  ] },
+  "track-select-forward": { group: "media", fill: [0,1,2], body: [
+    '<path d="M3.5 4.5l3.6 10.2 1.6-4.1 4.1-1.6z"/>',
+    '<path d="M12.5 14l2.75 2.75-2.75 2.75z"/>',
+    '<path d="M17.5 14l2.75 2.75-2.75 2.75z"/>',
+  ] },
+  "track-select-backward": { group: "media", fill: [0,1,2], body: [
+    '<path d="M20.5 4.5l-3.6 10.2-1.6-4.1-4.1-1.6z"/>',
+    '<path d="M11.5 14l-2.75 2.75 2.75 2.75z"/>',
+    '<path d="M6.5 14l-2.75 2.75 2.75 2.75z"/>',
+  ] },
+  "remix": { group: "media", body: [
+    '<path d="M3.5 12l1.25-3 1.5 6 1.25-3"/>',
+    '<path d="M16.5 12l1.25 3 1.5-6 1.25 3"/>',
+    '<path d="M10.5 8.5v7M13.5 8.5v7"/>',
+    '<path d="M6 4.5h11.5M15.5 2.5l2 2-2 2"/>',
+    '<path d="M18 19.5H6.5M8.5 17.5l-2 2 2 2"/>',
+  ] },
+  "nest": { group: "media", fill: [1], body: [
+    '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/>',
+    '<rect x="8" y="9" width="8" height="6" rx="1"/>',
+  ] },
+  "sync-lock": { group: "media", body: [
+    '<rect x="5" y="11" width="14" height="9.5" rx="1.5"/>',
+    '<path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    '<path d="M9 15.5l2 2 4-4"/>',
+  ] },
+  "proxy": { group: "media", fill: [1], body: [
+    '<rect x="3.5" y="5" width="17" height="14" rx="1.5"/>',
+    '<rect x="6.5" y="12" width="6" height="4" rx=".75"/>',
+    '<path d="M14 11l3.5-3.5M14.5 7.5h3v3"/>',
+  ] },
+  "freeform-view": { group: "media", body: [
+    '<rect x="3.5" y="4.5" width="8" height="7" rx="1"/>',
+    '<rect x="14" y="3.5" width="6.5" height="5" rx="1"/>',
+    '<rect x="9.5" y="13.5" width="11" height="7" rx="1"/>',
+  ] },
+  // --- general (drawn for Toma) ---
+  "square": { group: "general", body: [
+    '<rect x="5" y="5" width="14" height="14" rx="2"/>',
+  ] },
+  "drive": { group: "general", fill: [2], body: [
+    '<rect x="3.5" y="7.5" width="17" height="9" rx="2"/>',
+    '<path d="M6.5 12H12"/>',
+    '<circle cx="17" cy="12" r="1.25"/>',
+  ] },
+  "network": { group: "general", fill: [0,1,2], body: [
+    '<circle cx="12" cy="5.5" r="2"/>',
+    '<circle cx="5.5" cy="18.5" r="2"/>',
+    '<circle cx="18.5" cy="18.5" r="2"/>',
+    '<path d="M12 7.5v5M12 12.5l-5 4.5M12 12.5l5 4.5"/>',
+  ] },
+  "external-link": { group: "general", body: [
+    '<path d="M10.5 5h-4A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5v-4"/>',
+    '<path d="M11.5 12.5 19 5"/>',
+    '<path d="M14 5h5v5"/>',
+  ] },
   // --- text ---
   "bold": { group: "text", body: [
     '<path d="M7.5 4.5H13a3.5 3.5 0 0 1 0 7H7.5z"/>',
