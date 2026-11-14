@@ -83,6 +83,26 @@ def arrowhead(x, y, color, size=7):
 
 # ---- motifs: drawn in the art island's own coordinates (0..224, 0..384) -------------------------
 
+def m_anima(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    # a ball's arc through three keyframes: onion skins behind, dotted in-betweens, squash on landing
+    o.append(f'<path d="M40,226 Q112,-24 184,226" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 16" opacity=".75"/>')
+    o.append(f'<ellipse cx="40" cy="226" rx="26" ry="21" transform="rotate(-67 40 226)" fill="{d}"/>')
+    o.append('<circle cx="112" cy="102" r="27" fill="#B4A4F7"/>')
+    o.append('<ellipse cx="184" cy="236" rx="38" ry="29" fill="#FF7A59"/>')
+    # timeline: three rows of frames, the tween span and its keyframes on the middle one
+    for row in range(3):
+        y = 296 + row * 26
+        o.append(f'<rect x="16" y="{y - 10}" width="{AW - 32}" height="20" rx="5" fill="{d}"/>')
+    y = 322
+    o.append(f'<rect x="40" y="{y - 3}" width="144" height="6" rx="3" fill="#B4A4F7"/>')
+    for kx, fill in ((40, d), (112, "#E4DCFF"), (184, "#FF7A59")):
+        o.append(f'<path d="M{kx},{y - 9} L{kx + 9},{y} L{kx},{y + 9} L{kx - 9},{y} Z" fill="{fill}" stroke="#FFFFFF" stroke-width="1.5"/>')
+    o.append(f'<line x1="112" y1="276" x2="112" y2="364" stroke="{INK}" stroke-width="2.5"/>')
+    o.append(f'<path d="M104,272 L120,272 L112,282 Z" fill="{INK}"/>')
+    return "".join(o)
+
+
 def m_celdas(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     cw, rh = 52, 26
@@ -422,6 +442,13 @@ def m_vortia(c, d):
 AL, AR, AYc = 404, 494, 205  # 10 pt clear of both 128 pt icon boxes
 
 
+def a_anima(c):
+    o = [f'<circle cx="{AL + 4 + i * 14}" cy="{AYc + 6 - (0, 7, 10, 7)[i]}" r="{2 + i * 0.6}" fill="{c}" opacity="{0.35 + i * 0.2}"/>' for i in range(4)]
+    o.append(f'<ellipse cx="{AL + 62}" cy="{AYc + 3}" rx="7" ry="5" fill="{c}"/>')
+    o.append(arrowhead(AR, AYc, INK))
+    return "".join(o)
+
+
 def a_celdas(c):
     o = []
     for i in range(4):
@@ -527,6 +554,7 @@ def a_vortia(c):
 # window and the icon inside it read as one thing. The darker shade is for a second ink.
 APPS = {
     # id: (name, tagline, colour, darker shade, motif, arrow)
+    "anima": ("Ánima", "Animación 2D", "#6B4CE8", "#5034C6", m_anima, a_anima),
     "celdas": ("Celdas", "Hojas de cálculo", "#2F9E5B", "#237A45", m_celdas, a_celdas),
     "forja": ("Forja", "Dibujo técnico y CAD", "#C47A45", "#A86536", m_forja, a_forja),
     "lamina": ("Lámina", "Presentaciones", "#B03C67", "#8C2D50", m_lamina, a_lamina),
