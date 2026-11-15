@@ -6,6 +6,7 @@ propio que dice qué hace la app:
 
 | App | Isla de la izquierda | Flecha entre los iconos |
 |---|---|---|
+| Ágora | lista de canales, conversación con reacción e hilo, y el candado sobre texto cifrado | bocadillo y puntos |
 | Ánima | arco de una pelota por tres poses, papel cebolla e interpolación en la línea de tiempo | pelota que bota |
 | Celdas | cuadrícula con una selección y su tirador | fila de celdas |
 | Forja | escuadra, arco y cota sobre papel milimetrado | línea de cota |
