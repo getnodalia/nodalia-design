@@ -47,6 +47,7 @@ Un acento solo cambia `color.accent.*`, `color.selection.bg`, `color.border.focu
 | `celdas` | `#1D6B3B` | | `torno` | `#8C7419` |
 | `lamina` | `#7C1F41` | | `papel` | `#68778F` |
 | | | | `trama` | `#8B2FD6` |
+| | | | `agora` | `#0F7C80` |
 
 Cómo se activa: `<html data-accent="vortia">` en web, `Accent::Vortia` en Rust, el grupo `accent` de `nodalia-qt.json` en Qt Widgets. GTK y Qt Quick no tienen acentos todavía.
 
