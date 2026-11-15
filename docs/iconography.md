@@ -66,6 +66,24 @@ Las apps de ingeniería (Torno, Vortia, Forja) comparten además un juego de ico
 - Usan solo colores de rol (`ROLES`: `ink`, `line`, `face-1..3`, `accent-1..3`, `guide`, `paper`), así que cada app los recolorea con su paleta. `line` es el trazo que va sobre el fondo de la interfaz y no sobre una cara; en tema oscuro se vuelve claro.
 - `npm run build` los escribe en `dist/cad3d/` (claro), `dist/cad3d/dark/` (oscuro), `index.json` y una vista previa. Los trazados son absolutos (`M L C Q A Z`) sobre una caja de 64 px.
 
+## Iconos de aplicación
+
+Cada app Nodalia lleva como icono el retrato de una figura histórica ligada a lo que hace la app: la figura recortada en blanco y negro, cabeza y hombros, sobre un campo a sangre del color de la app (un degradado suave de dos tonos), en una baldosa de 512 con radio 112. Solo retratos de dominio público, con su fuente y licencia en el `ATTRIBUTION` y el `assets/app-icon/README.md` de cada app.
+
+| App | Figura | App | Figura |
+| --- | --- | --- | --- |
+| Ánima | Émile Reynaud | Pliego | Johannes Gutenberg |
+| Brújula | Juan Sebastián Elcano | Pluma | René Descartes |
+| Celdas | Blaise Pascal | Pulso | Eadweard Muybridge |
+| Forja | Leonardo da Vinci | Toma | Georges Méliès |
+| Lámina | Cicerón | Torno | Henry Maudslay |
+| Letra | Miguel de Cervantes | Trama | Joseph Marie Jacquard |
+| Lienzo | Diego Velázquez | Vinilo | Ludwig van Beethoven |
+| Luz | Louis Daguerre | Vortia | Daniel Bernoulli |
+| Papel | Aldo Manucio | | |
+
+`tools/app-portrait/portrait.py` hace la ilustración a partir del retrato descargado (ver su README); cada app la convierte en su SVG maestro y en todos sus tamaños, y nodalix-icon-theme la ajusta a la retícula de Colloid.
+
 ## Reglas de dibujo
 
 - Rejilla de 24 px con 3 px de margen libre; coordenadas en múltiplos de 0,25 px.
