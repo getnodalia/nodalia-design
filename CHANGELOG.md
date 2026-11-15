@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
+- `tools/app-portrait`: `--mask` traza la figura con un polígono en vez del recorte del modelo, para grabados cuyo fondo rayado el modelo toma por parte de la figura.
 - `@nodalia/icons`: 142 iconos de dibujo vectorial (501 en total), hechos para Pluma y compartidos con todas las apps: herramientas (selección de grupo, punto de ancla, curvatura, tipos de texto, formas, cuchilla, cortes, licuar, anchura, generador de formas, perspectiva, malla, fusión, rociador de símbolos, mesa de trabajo), Buscatrazos completo, degradados, extremos y uniones de trazo, alineación del trazo, alinear y distribuir, reglas de relleno y paneles (muestras, estilos gráficos, apariencia, efectos, acciones).
 - **Acento por app.** Cada app aporta un color clave en `accents.json` y NDL deriva una rampa con la misma luminancia, paso a paso, que la de por defecto, así que el contraste es idéntico y se valida en la compilación. 17 apps incluidas. Disponible en CSS (`data-accent`), en el crate Rust (`Accent`, `Mode::palette_with`) y en `nodalia-qt.json` (grupo `accent`). `dist/accents.json` lista rampas y colores resultantes.
 - `@nodalia/icons`: 192 iconos nuevos (247 en total) en diez grupos más: general, medios, texto, datos, diapositivas, diseño, foto, correo, modelado y documento. Mismas normas de dibujo. `dist/preview.html` muestra el conjunto completo.
@@ -17,6 +18,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - `nodalia-update`: CI ejecuta el crate en Linux, macOS y Windows, con la instalación de cada sistema de principio a fin (imagen de disco firmada ad hoc y ayudante real en macOS, ayudante del MSI en Windows, AppImage en Linux).
 
 ### Cambiado
+- Iconos de app: Ánima pasa a Émile Cohl, y Trama sigue con Jacquard pero sacado de un grabado de 1878. La regla de los retratos añade que el busto llega al borde inferior, sin cortes a los lados.
 - `nodalia-update`: una app que no puede sustituirse donde está (carpeta sin permiso de escritura, la propia imagen de disco o una copia trasladada por macOS) ya no intenta instalar y falla: lo explica y abre la página de la versión. `InstallKind` gana `WindowsMsi`, `Portable` y `NotWritable`; `Failure` gana `Install` y `Cancelled` y pasa a ser `#[non_exhaustive]`.
 - `nodalia-update`: un repositorio sin versiones publicadas responde «no hay actualizaciones» en vez de «The latest release has no version tag».
 - `nodalia-gtk`: en macOS los semáforos del sistema quedan separados del borde de la isla tanto como del borde superior, con el mismo aire antes del título.

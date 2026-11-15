@@ -68,11 +68,11 @@ Las apps de ingeniería (Torno, Vortia, Forja) comparten además un juego de ico
 
 ## Iconos de aplicación
 
-Cada app Nodalia lleva como icono el retrato de una figura histórica ligada a lo que hace la app: la figura recortada en blanco y negro, cabeza y hombros, sobre un campo a sangre del color de la app (un degradado suave de dos tonos), en una baldosa de 512 con radio 112. Solo retratos de dominio público, con su fuente y licencia en el `ATTRIBUTION` y el `assets/app-icon/README.md` de cada app.
+Cada app Nodalia lleva como icono el retrato de una figura histórica ligada a lo que hace la app: la figura recortada en blanco y negro, cabeza y hombros, con el busto llegando al borde inferior y sin cortes a los lados, sobre un campo a sangre del color de la app (un degradado suave de dos tonos), en una baldosa de 512 con radio 112. Solo retratos de dominio público, con su fuente y licencia en el `ATTRIBUTION` y el `assets/app-icon/README.md` de cada app.
 
 | App | Figura | App | Figura |
 | --- | --- | --- | --- |
-| Ánima | Émile Reynaud | Pliego | Johannes Gutenberg |
+| Ánima | Émile Cohl | Pliego | Johannes Gutenberg |
 | Brújula | Juan Sebastián Elcano | Pluma | René Descartes |
 | Celdas | Blaise Pascal | Pulso | Eadweard Muybridge |
 | Forja | Leonardo da Vinci | Toma | Georges Méliès |
