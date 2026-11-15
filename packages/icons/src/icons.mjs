@@ -706,6 +706,31 @@ export const ICONS = {
   "keyframe": { group: "media", body: [
     '<path d="M12 5l7 7-7 7-7-7z"/>',
   ] },
+  "onion-skin": { group: "media", fill: [1], body: [
+    '<circle cx="9.5" cy="12" r="5.5" stroke-dasharray="2 2.5"/>',
+    '<circle cx="14.5" cy="12" r="5.5"/>',
+  ] },
+  "frame-insert": { group: "media", body: [
+    '<rect x="3.5" y="5.5" width="10" height="13" rx="1.5"/>',
+    '<path d="M17.5 9v6M14.5 12h6"/>',
+  ] },
+  "keyframe-insert": { group: "media", body: [
+    '<rect x="3.5" y="5.5" width="10" height="13" rx="1.5"/>',
+    '<circle cx="8.5" cy="12" r="2.25" fill="currentColor" stroke="none"/>',
+    '<path d="M17.5 9v6M14.5 12h6"/>',
+  ] },
+  "keyframe-blank-insert": { group: "media", body: [
+    '<rect x="3.5" y="5.5" width="10" height="13" rx="1.5"/>',
+    '<circle cx="8.5" cy="12" r="2.25"/>',
+    '<path d="M17.5 9v6M14.5 12h6"/>',
+  ] },
+  "bone": { group: "media", body: [
+    '<path d="M9 15l6-6"/>',
+    '<circle cx="5.75" cy="15.75" r="2.25"/>',
+    '<circle cx="8.25" cy="18.25" r="2.25"/>',
+    '<circle cx="15.75" cy="5.75" r="2.25"/>',
+    '<circle cx="18.25" cy="8.25" r="2.25"/>',
+  ] },
   "speed": { group: "media", body: [
     '<path d="M4.5 16.5a8 8 0 1 1 15 0"/>',
     '<path d="M12 14.5l4-5.5"/>',
