@@ -6,9 +6,14 @@ dibujo 2D) deben leerse como una sola suite: quien sabe usar una encuentra en el
 Sobre NDL (islas, tipografía con peso, menú hamburguesa, controles de ventana propios solo en
 Linux, menú global por D-Bus, sin degradados ni brillos) esta página fija lo que comparten.
 
-Las tres están hechas con **egui 0.37**, así que lo compartido es código, no solo una guía: el
-módulo `nodalia_theme::engineering` (feature `engineering` del crate `nodalia-theme`). Lo que
-todavía no está en el módulo está descrito aquí y cada app lo sigue a mano hasta que se suba.
+La implementación compartida para clientes **egui 0.37** es el módulo
+`nodalia_theme::engineering` (feature `engineering` del crate `nodalia-theme`). Esta página
+especifica el objetivo de la suite y no implica que todos los paquetes publicados ya lo usen.
+Torno y Forja tienen clientes egui; Vortia tiene un cliente egui que utiliza este módulo, pero
+los paquetes de Vortia 0.10.0 distribuyen la interfaz Qt y, en macOS, una variante Swift nativa.
+Por tanto, instalar 0.10.0 no activa el cliente egui ni garantiza esta interfaz compartida.
+Lo que todavía no está en el módulo o en un cliente está descrito como objetivo, no como una
+función ya disponible.
 
 Todo lo de esta página es diseño propio de Nodalia. No se copia código, medidas, paletas ni
 dibujos de otras aplicaciones (en particular, nada del material de Torno bajo `LICENSE-BRAND`).
