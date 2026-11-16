@@ -83,6 +83,43 @@ def arrowhead(x, y, color, size=7):
 
 # ---- motifs: drawn in the art island's own coordinates (0..224, 0..384) -------------------------
 
+def m_agora(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    # a channel list down the left edge, the open channel marked
+    o.append(f'<rect x="0" y="0" width="54" height="{AH}" fill="{d}"/>')
+    for i in range(6):
+        y = 28 + i * 30
+        if i == 1:
+            o.append(f'<rect x="8" y="{y - 10}" width="38" height="20" rx="6" fill="#FFFFFF"/>')
+        ink = INK if i == 1 else "#FFFFFF"
+        o.append(f'<path d="M16,{y - 4} L24,{y - 4} M14,{y + 3} L22,{y + 3} M19,{y - 8} L17,{y + 7} M23,{y - 8} L21,{y + 7}" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"/>')
+        o.append(f'<rect x="28" y="{y - 2}" width="{(12, 14, 10, 13, 9, 11)[i]}" height="4" rx="2" fill="{ink}"/>')
+    # a conversation: bubbles from others on the left, ours on the right, a reaction and a thread
+    def bubble(x, y, w, h, fill, tail_left):
+        tx = x + 10 if tail_left else x + w - 10
+        tip = tx - 8 if tail_left else tx + 8
+        return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="12" fill="{fill}"/>'
+                f'<path d="M{tx - 6},{y + h - 2} L{tip},{y + h + 9} L{tx + 6},{y + h - 2} Z" fill="{fill}"/>')
+    for x, y, w, h, mine, lines in ((70, 40, 118, 46, False, (88, 64)), (98, 108, 112, 32, True, (76,)),
+                                   (70, 168, 130, 60, False, (104, 92, 58)), (106, 262, 104, 46, True, (72, 50))):
+        o.append(bubble(x, y, w, h, INK if mine else "#FFFFFF", not mine))
+        for j, lw in enumerate(lines):
+            o.append(f'<rect x="{x + 12}" y="{y + 12 + j * 13}" width="{lw}" height="6" rx="3" fill="{"#FFFFFF" if mine else d}"/>')
+    # a reaction on the long message and its thread line
+    o.append(f'<rect x="160" y="218" width="34" height="20" rx="10" fill="#FFFFFF" stroke="{d}" stroke-width="2"/>')
+    o.append(f'<circle cx="171" cy="228" r="5" fill="#FFC23D"/>')
+    o.append(f'<rect x="180" y="226" width="8" height="4" rx="2" fill="{INK}"/>')
+    o.append(f'<path d="M78,236 L78,248 Q78,252 82,252 L96,252" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>')
+    # the lock: the server carries text it cannot read
+    lx, ly = 70, 326
+    o.append(f'<rect x="{lx}" y="{ly}" width="140" height="34" rx="17" fill="{d}"/>')
+    o.append(f'<path d="M{lx + 18},{ly + 15} L{lx + 18},{ly + 11} A7,7 0 0 1 {lx + 32},{ly + 11} L{lx + 32},{ly + 15}" fill="none" stroke="#FFFFFF" stroke-width="2.5"/>')
+    o.append(f'<rect x="{lx + 14}" y="{ly + 14}" width="22" height="14" rx="3" fill="#FFFFFF"/>')
+    for k in range(7):
+        o.append(f'<circle cx="{lx + 50 + k * 12}" cy="{ly + 17}" r="3" fill="#FFFFFF" opacity="{0.45 + (k % 3) * 0.2:.2f}"/>')
+    return "".join(o)
+
+
 def m_anima(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     # a ball's arc through three keyframes: onion skins behind, dotted in-betweens, squash on landing
@@ -442,6 +479,14 @@ def m_vortia(c, d):
 AL, AR, AYc = 404, 494, 205  # 10 pt clear of both 128 pt icon boxes
 
 
+def a_agora(c):
+    o = [f'<rect x="{AL}" y="{AYc - 10}" width="30" height="18" rx="9" fill="{c}"/>',
+         f'<path d="M{AL + 6},{AYc + 6} L{AL + 2},{AYc + 13} L{AL + 13},{AYc + 7} Z" fill="{c}"/>']
+    o += [f'<circle cx="{AL + 40 + i * 9}" cy="{AYc}" r="1.6" fill="{INK}"/>' for i in range(4)]
+    o.append(arrowhead(AR, AYc, INK))
+    return "".join(o)
+
+
 def a_anima(c):
     o = [f'<circle cx="{AL + 4 + i * 14}" cy="{AYc + 6 - (0, 7, 10, 7)[i]}" r="{2 + i * 0.6}" fill="{c}" opacity="{0.35 + i * 0.2}"/>' for i in range(4)]
     o.append(f'<ellipse cx="{AL + 62}" cy="{AYc + 3}" rx="7" ry="5" fill="{c}"/>')
@@ -554,6 +599,7 @@ def a_vortia(c):
 # window and the icon inside it read as one thing. The darker shade is for a second ink.
 APPS = {
     # id: (name, tagline, colour, darker shade, motif, arrow)
+    "agora": ("Ágora", "Chat de equipo", "#0F7C80", "#0A5F63", m_agora, a_agora),
     "anima": ("Ánima", "Animación 2D", "#6B4CE8", "#5034C6", m_anima, a_anima),
     "celdas": ("Celdas", "Hojas de cálculo", "#2F9E5B", "#237A45", m_celdas, a_celdas),
     "forja": ("Forja", "Dibujo técnico y CAD", "#C47A45", "#A86536", m_forja, a_forja),
