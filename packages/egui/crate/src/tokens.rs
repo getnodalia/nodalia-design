@@ -314,10 +314,11 @@ pub enum Accent {
     Trama,
     Agora,
     Anima,
+    Hito,
 }
 
 impl Accent {
-    pub const ALL: [Accent; 21] = [Accent::Nodalia, Accent::Nodalix, Accent::Vortia, Accent::Brujula, Accent::Vinilo, Accent::Buzon, Accent::Letra, Accent::Celdas, Accent::Lamina, Accent::Papel, Accent::Pliego, Accent::Pluma, Accent::Lienzo, Accent::Luz, Accent::Toma, Accent::Pulso, Accent::Forja, Accent::Torno, Accent::Trama, Accent::Agora, Accent::Anima];
+    pub const ALL: [Accent; 22] = [Accent::Nodalia, Accent::Nodalix, Accent::Vortia, Accent::Brujula, Accent::Vinilo, Accent::Buzon, Accent::Letra, Accent::Celdas, Accent::Lamina, Accent::Papel, Accent::Pliego, Accent::Pluma, Accent::Lienzo, Accent::Luz, Accent::Toma, Accent::Pulso, Accent::Forja, Accent::Torno, Accent::Trama, Accent::Agora, Accent::Anima, Accent::Hito];
 
     /// The name used by the other NDL adapters (`data-accent` on the web).
     pub const fn name(self) -> &'static str {
@@ -343,6 +344,7 @@ impl Accent {
             Accent::Trama => "trama",
             Accent::Agora => "agora",
             Accent::Anima => "anima",
+            Accent::Hito => "hito",
         }
     }
 }
@@ -1147,6 +1149,46 @@ impl Mode {
                 p.accent_subtle = Rgba::new(54, 31, 131, 255);
                 p.accent_text = Rgba::new(199, 198, 235, 255);
                 p.selection_bg = Rgba::new(79, 42, 188, 255);
+            }
+            (Accent::Hito, Mode::Light) => {
+                p.text_link = Rgba::new(40, 106, 28, 255);
+                p.border_focus = Rgba::new(52, 134, 36, 255);
+                p.accent_default = Rgba::new(52, 134, 36, 255);
+                p.accent_hover = Rgba::new(40, 106, 28, 255);
+                p.accent_pressed = Rgba::new(31, 85, 21, 255);
+                p.accent_subtle = Rgba::new(226, 246, 222, 255);
+                p.accent_text = Rgba::new(40, 106, 28, 255);
+                p.selection_bg = Rgba::new(226, 246, 222, 255);
+            }
+            (Accent::Hito, Mode::Dark) => {
+                p.text_link = Rgba::new(89, 203, 68, 255);
+                p.border_focus = Rgba::new(89, 203, 68, 255);
+                p.accent_default = Rgba::new(89, 203, 68, 255);
+                p.accent_hover = Rgba::new(131, 223, 115, 255);
+                p.accent_pressed = Rgba::new(77, 182, 57, 255);
+                p.accent_subtle = Rgba::new(22, 60, 15, 255);
+                p.accent_text = Rgba::new(89, 203, 68, 255);
+                p.selection_bg = Rgba::new(22, 60, 15, 255);
+            }
+            (Accent::Hito, Mode::LightHc) => {
+                p.text_link = Rgba::new(31, 85, 21, 255);
+                p.border_focus = Rgba::new(31, 85, 21, 255);
+                p.accent_default = Rgba::new(31, 85, 21, 255);
+                p.accent_hover = Rgba::new(22, 60, 15, 255);
+                p.accent_pressed = Rgba::new(15, 44, 9, 255);
+                p.accent_subtle = Rgba::new(226, 246, 222, 255);
+                p.accent_text = Rgba::new(31, 85, 21, 255);
+                p.selection_bg = Rgba::new(226, 246, 222, 255);
+            }
+            (Accent::Hito, Mode::DarkHc) => {
+                p.text_link = Rgba::new(131, 223, 115, 255);
+                p.border_focus = Rgba::new(131, 223, 115, 255);
+                p.accent_default = Rgba::new(131, 223, 115, 255);
+                p.accent_hover = Rgba::new(226, 246, 222, 255);
+                p.accent_pressed = Rgba::new(89, 203, 68, 255);
+                p.accent_subtle = Rgba::new(22, 60, 15, 255);
+                p.accent_text = Rgba::new(131, 223, 115, 255);
+                p.selection_bg = Rgba::new(31, 85, 21, 255);
             }
         }
         p
