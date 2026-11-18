@@ -394,14 +394,6 @@ fn header_shows_its_page_title() {
     let window = ndl::Window::new();
     window.set_title(Some("Settings"));
     window.set_content(Some(&page));
-    window.present();
-    let context = glib::MainContext::default();
-    for _ in 0..200 {
-        if header.is_mapped() {
-            break;
-        }
-        context.iteration(true);
-    }
     let shown = || {
         header
             .title_widget()
@@ -411,5 +403,4 @@ fn header_shows_its_page_title() {
     assert_eq!(shown().as_deref(), Some("System"));
     page.set_title("Privacy");
     assert_eq!(shown().as_deref(), Some("Privacy"));
-    window.close();
 }

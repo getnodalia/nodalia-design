@@ -350,6 +350,11 @@ mod header_imp {
     }
 
     impl WidgetImpl for HeaderBar {
+        fn root(&self) {
+            self.parent_root();
+            self.obj().sync_page_title();
+        }
+
         fn map(&self) {
             let obj = self.obj();
             obj.sync_controls();
