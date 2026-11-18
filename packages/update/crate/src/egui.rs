@@ -72,11 +72,13 @@ enum Msg {
     Checked {
         user: bool,
         result: Result<Check, String>,
+        /// The typed error behind a failed check from GitHub, worded in the window's language.
+        error: Option<crate::Error>,
     },
     Progress(u64, Option<u64>),
     /// The version downloaded, so a result only completes the download that asked for it.
-    Downloaded(String, Result<PathBuf, String>),
-    Installed(Result<(), String>),
+    Downloaded(String, Result<PathBuf, String>, Option<crate::Error>),
+    Installed(Result<(), String>, Option<crate::Error>),
 }
 
 /// Where a check gets its answer: GitHub, unless an app's tests stand in for it.
@@ -95,6 +97,9 @@ pub struct Updater {
     /// Stands in for GitHub (tests); `None` asks GitHub.
     source: Option<Source>,
     startup_delay: Duration,
+    /// The typed error behind the failure on screen, if it came from this crate: it is worded in
+    /// the language the window is drawn in, which the threads do not know.
+    error: Option<crate::Error>,
 }
 
 impl Updater {
@@ -111,6 +116,7 @@ impl Updater {
             stamp,
             source: None,
             startup_delay: STARTUP_DELAY,
+            error: None,
         }
     }
 
@@ -165,6 +171,7 @@ impl Updater {
 
     /// Puts the flow in this status without doing its work: for an app's tests and previews.
     pub fn set_status(&mut self, status: Status) {
+        self.error = None;
         self.status = status;
     }
 
@@ -212,11 +219,18 @@ impl Updater {
             if let Some(stamp) = stamp {
                 write_stamp(&stamp);
             }
-            let result = match source {
-                Some(source) => source(),
-                None => crate::check(&app).map_err(|e| e.to_string()),
+            let (result, error) = match source {
+                Some(source) => (source(), None),
+                None => match crate::check(&app) {
+                    Ok(check) => (Ok(check), None),
+                    Err(e) => (Err(e.to_string()), Some(e)),
+                },
             };
-            let _ = tx.send(Msg::Checked { user, result });
+            let _ = tx.send(Msg::Checked {
+                user,
+                result,
+                error,
+            });
             ctx.request_repaint();
         });
     }
@@ -242,9 +256,11 @@ impl Updater {
                     ctx.request_repaint();
                 }
             });
+            let error = result.as_ref().err().cloned();
             let _ = tx.send(Msg::Downloaded(
                 release.version.clone(),
                 result.map_err(|e| e.to_string()),
+                error,
             ));
             ctx.request_repaint();
         });
@@ -254,8 +270,9 @@ impl Updater {
         let (app, tx, ctx) = (self.app.clone(), self.tx.clone(), ctx.clone());
         self.status = Status::Installing(release);
         std::thread::spawn(move || {
-            let result = crate::apply(&app, &package, || Ok(())).map_err(|e| e.to_string());
-            let _ = tx.send(Msg::Installed(result));
+            let result = crate::apply(&app, &package, || Ok(()));
+            let error = result.as_ref().err().cloned();
+            let _ = tx.send(Msg::Installed(result.map_err(|e| e.to_string()), error));
             ctx.request_repaint();
         });
     }
@@ -267,12 +284,17 @@ impl Updater {
         let mut action = Action::None;
         while let Ok(msg) = self.rx.try_recv() {
             match msg {
-                Msg::Checked { user, result } => {
+                Msg::Checked {
+                    user,
+                    result,
+                    error,
+                } => {
                     // Only the check still pending gets an answer: a late one must not replace a
                     // download or a window the person has moved on to.
                     if self.status != (Status::Checking { user }) {
                         continue;
                     }
+                    self.error = error;
                     self.status = match result {
                         Ok(Check::Available(release)) => Status::Offer(release),
                         Ok(Check::UpToDate) if user => Status::UpToDate,
@@ -295,21 +317,25 @@ impl Updater {
                         *t = total;
                     }
                 }
-                Msg::Downloaded(version, result) => {
+                Msg::Downloaded(version, result, error) => {
                     let release = match &self.status {
                         Status::Downloading { release, .. } if release.version == version => {
                             release.clone()
                         }
                         _ => continue,
                     };
+                    self.error = error;
                     self.status = match result {
                         Ok(package) => Status::Ready { release, package },
                         Err(why) => Status::InstallFailed(why),
                     };
                 }
-                Msg::Installed(result) => match result {
+                Msg::Installed(result, error) => match result {
                     Ok(()) => action = Action::Exit,
-                    Err(why) => self.status = Status::InstallFailed(why),
+                    Err(why) => {
+                        self.error = error;
+                        self.status = Status::InstallFailed(why);
+                    }
                 },
             }
         }
@@ -364,9 +390,14 @@ impl Updater {
                     Status::UpToDate => {
                         ui.label(words.up_to_date(self.app.name, self.app.version));
                     }
-                    Status::CheckFailed(why) | Status::InstallFailed(why) => {
-                        ui.label(why.as_str());
-                    }
+                    Status::CheckFailed(why) | Status::InstallFailed(why) => match &self.error {
+                        Some(error) => {
+                            ui.label(words.error(error));
+                        }
+                        None => {
+                            ui.label(why.as_str());
+                        }
+                    },
                     Status::LastFailed(failure) => {
                         ui.label(words.last_failed(*failure));
                     }
@@ -386,6 +417,9 @@ impl Updater {
                         if !in_place {
                             ui.add_space(8.0);
                             ui.label(egui::RichText::new(words.elsewhere(&kind)).weak());
+                        } else if release.asset.is_none() {
+                            ui.add_space(8.0);
+                            ui.label(egui::RichText::new(words.page_only).weak());
                         }
                     }
                     Status::Downloading {
@@ -427,7 +461,9 @@ impl Updater {
                     };
                     match &self.status {
                         Status::Offer(release) => {
-                            if in_place {
+                            // Known only by its page (GitHub's limit was spent): no package to
+                            // install, so the page.
+                            if in_place && release.asset.is_some() {
                                 if primary(ui, words.install, true) {
                                     download = Some(release.clone());
                                 }
@@ -573,6 +609,7 @@ struct Words {
     restart: &'static str,
     close: &'static str,
     try_again: &'static str,
+    page_only: &'static str,
 }
 
 impl Words {
@@ -598,6 +635,7 @@ impl Words {
                 restart: "Reiniciar ahora",
                 close: "Cerrar",
                 try_again: "Reintentar",
+                page_only: "GitHub limita las consultas desde tu red durante un rato, así que no se ha podido preparar la instalación automática. Descarga la versión nueva desde su página, o vuelve a buscar más tarde para instalarla desde aquí.",
             },
             Language::English => Self {
                 spanish: false,
@@ -619,6 +657,7 @@ impl Words {
                 restart: "Restart Now",
                 close: "Close",
                 try_again: "Try Again",
+                page_only: "GitHub is limiting requests from your network for a while, so the automatic install could not be prepared. Download the new version from its page, or check again later to install it from here.",
             },
         }
     }
@@ -660,6 +699,40 @@ impl Words {
             format!("Instalando {version}")
         } else {
             format!("Installing {version}")
+        }
+    }
+
+    /// A failure from this crate, in the window's language: what happened and what to do.
+    fn error(&self, error: &crate::Error) -> String {
+        use crate::Error as E;
+        let es = self.spanish;
+        match error {
+            E::Network(_) if es => "No se pudo conectar con GitHub. Comprueba la conexión a Internet y vuelve a intentarlo.".into(),
+            E::Network(_) => "Could not connect to GitHub. Check your internet connection and try again.".into(),
+            E::RateLimited { reset } => {
+                let minutes = reset.map(|r| r.saturating_sub(now()).div_ceil(60).max(1));
+                match (es, minutes) {
+                    (true, Some(1)) => "GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de un minuto.".into(),
+                    (true, Some(m)) => format!("GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de {m} minutos."),
+                    (true, None) => "GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de un rato.".into(),
+                    (false, Some(1)) => "GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in a minute.".into(),
+                    (false, Some(m)) => format!("GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in {m} minutes."),
+                    (false, None) => "GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in a while.".into(),
+                }
+            }
+            E::BadResponse if es => "GitHub respondió algo inesperado. Vuelve a intentarlo más tarde.".into(),
+            E::BadResponse => "GitHub sent an unexpected answer. Try again later.".into(),
+            E::NoVersion if es => "La última versión publicada no tiene número de versión.".into(),
+            E::NoVersion => "The latest release has no version number.".into(),
+            E::NoPackage(v) if es => format!("Hay una versión nueva ({v}), pero aún no tiene paquete para este sistema. Vuelve a buscar en un rato."),
+            E::NoPackage(v) => format!("A new version ({v}) is out, but it has no package for this system yet. Check again in a while."),
+            E::NoDigest if es => "La versión no publica la huella SHA-256 del paquete, así que no se instala sin verificar.".into(),
+            E::NoDigest => "The release does not publish the package's SHA-256, so it is not installed unverified.".into(),
+            E::Checksum if es => "La descarga no coincide con su huella SHA-256 y se ha descartado. Vuelve a intentarlo.".into(),
+            E::Checksum => "The download does not match its SHA-256 and was discarded. Try again.".into(),
+            E::NotUpdatable if es => "Esta instalación no puede actualizarse desde la app. Descarga la versión nueva desde su página.".into(),
+            E::NotUpdatable => "This installation cannot be updated from the app. Download the new version from its page.".into(),
+            E::Refused(why) | E::Io(why) | E::Signature(why) => why.clone(),
         }
     }
 
@@ -816,6 +889,7 @@ mod tests {
             let _ = updater.tx.send(Msg::Checked {
                 user: false,
                 result,
+                error: None,
             });
             assert_eq!(updater.poll(), Action::None);
             assert_eq!(updater.status(), &Status::Idle);
@@ -829,6 +903,7 @@ mod tests {
         let _ = updater.tx.send(Msg::Checked {
             user: true,
             result: Ok(Check::UpToDate),
+            error: None,
         });
         let _ = updater.poll();
         assert_eq!(updater.status(), &Status::UpToDate);
@@ -837,6 +912,7 @@ mod tests {
         let _ = updater.tx.send(Msg::Checked {
             user: true,
             result: Err("offline".into()),
+            error: None,
         });
         let _ = updater.poll();
         assert_eq!(updater.status(), &Status::CheckFailed("offline".into()));
@@ -845,6 +921,7 @@ mod tests {
         let _ = updater.tx.send(Msg::Checked {
             user: true,
             result: Ok(Check::Available(release())),
+            error: None,
         });
         let _ = updater.poll();
         assert_eq!(updater.status(), &Status::Offer(release()));
@@ -862,6 +939,7 @@ mod tests {
         let _ = updater.tx.send(Msg::Checked {
             user: false,
             result: Ok(Check::Available(release())),
+            error: None,
         });
         let _ = updater.poll();
         assert_eq!(updater.status(), &downloading);
@@ -881,14 +959,18 @@ mod tests {
             received: 1,
             total: None,
         };
-        let _ = updater
-            .tx
-            .send(Msg::Downloaded("0.0.1".into(), Ok(PathBuf::from("old"))));
+        let _ = updater.tx.send(Msg::Downloaded(
+            "0.0.1".into(),
+            Ok(PathBuf::from("old")),
+            None,
+        ));
         let _ = updater.poll();
         assert!(matches!(updater.status(), Status::Downloading { .. }));
-        let _ = updater
-            .tx
-            .send(Msg::Downloaded(release().version, Ok(PathBuf::from("new"))));
+        let _ = updater.tx.send(Msg::Downloaded(
+            release().version,
+            Ok(PathBuf::from("new")),
+            None,
+        ));
         let _ = updater.poll();
         assert_eq!(
             updater.status(),
@@ -918,11 +1000,11 @@ mod tests {
     fn a_finished_install_asks_the_app_to_exit_and_a_failed_one_says_why() {
         let mut updater = Updater::new(APP).with_stamp(None);
         updater.status = Status::Installing(release());
-        let _ = updater.tx.send(Msg::Installed(Ok(())));
+        let _ = updater.tx.send(Msg::Installed(Ok(()), None));
         assert_eq!(updater.poll(), Action::Exit);
 
         updater.status = Status::Installing(release());
-        let _ = updater.tx.send(Msg::Installed(Err("locked".into())));
+        let _ = updater.tx.send(Msg::Installed(Err("locked".into()), None));
         assert_eq!(updater.poll(), Action::None);
         assert_eq!(updater.status(), &Status::InstallFailed("locked".into()));
     }
@@ -943,5 +1025,42 @@ mod tests {
         });
         output.textures_delta.clear();
         assert!(matches!(updater.status(), Status::Ready { .. }));
+    }
+
+    #[test]
+    fn a_failure_from_github_is_worded_in_the_window_s_language() {
+        let es = Words::new(Language::Spanish);
+        let en = Words::new(Language::English);
+        let limited = crate::Error::RateLimited {
+            reset: Some(now() + 600),
+        };
+        assert!(
+            es.error(&limited).contains("dentro de 10 minutos"),
+            "{}",
+            es.error(&limited)
+        );
+        assert!(en.error(&limited).contains("in 10 minutes"));
+        let soon = crate::Error::RateLimited { reset: Some(now()) };
+        assert!(es.error(&soon).contains("dentro de un minuto"));
+        let network = crate::Error::Network("http status: 500".into());
+        assert!(es
+            .error(&network)
+            .starts_with("No se pudo conectar con GitHub"));
+        assert!(!es.error(&network).contains("http status"), "no raw status");
+
+        // The window shows the worded error, not the English one the status carries.
+        let mut updater = Updater::new(APP).with_stamp(None);
+        updater.status = Status::Checking { user: true };
+        let _ = updater.tx.send(Msg::Checked {
+            user: true,
+            result: Err(limited.to_string()),
+            error: Some(limited.clone()),
+        });
+        let _ = updater.poll();
+        assert!(matches!(updater.status(), Status::CheckFailed(_)));
+        assert_eq!(updater.error, Some(limited));
+        // A status set by the app drops it.
+        updater.set_status(Status::CheckFailed("from the app".into()));
+        assert_eq!(updater.error, None);
     }
 }
