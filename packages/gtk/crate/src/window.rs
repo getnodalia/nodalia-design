@@ -128,6 +128,7 @@ impl BreakpointBin {
     }
 
     pub fn add_breakpoint(&self, breakpoint: Breakpoint) {
+        breakpoint.set_owner(self.upcast_ref());
         self.imp().breakpoints.add(breakpoint);
         self.queue_allocate();
     }

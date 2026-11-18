@@ -14,6 +14,8 @@
 mod about;
 mod animation;
 mod breakpoint;
+mod carousel;
+mod containers;
 mod dialog;
 mod fonts;
 mod global_menu;
@@ -23,6 +25,8 @@ mod menu;
 mod misc;
 mod navigation;
 mod prefs;
+#[cfg(feature = "relm4")]
+mod relm4_ext;
 mod rows;
 mod theme;
 mod toolbar;
@@ -35,22 +39,28 @@ pub use icons::{has_icon, THEME as ICON_THEME};
 pub use about::{
     AboutDialog, AboutDialogBuilder, ShortcutsDialog, ShortcutsItem, ShortcutsSection,
 };
-pub use animation::{AnimationState, CallbackAnimationTarget, Easing, TimedAnimation};
-pub use breakpoint::{Breakpoint, BreakpointCondition, ConditionError};
+pub use animation::{
+    AnimationState, CallbackAnimationTarget, Easing, TimedAnimation, WeakTimedAnimation,
+};
+pub use breakpoint::{
+    Breakpoint, BreakpointCondition, BreakpointConditionLengthType, ConditionError, LengthUnit,
+};
+pub use carousel::{Carousel, CarouselIndicatorDots};
+pub use containers::{Bin, ButtonContent, ButtonContentBuilder, WrapBox};
 pub use dialog::{AlertDialog, Dialog, DialogBuilder, ResponseAppearance};
 pub use global_menu::{global_menu, MenuEntry, TopMenu};
-pub use layout::{BottomSheet, OverlaySplitView};
+pub use layout::{BottomSheet, NavigationSplitView, OverlaySplitView};
 pub use menu::{menu_item, menu_item_danger, menu_rows};
 pub use misc::{
     Avatar, AvatarBuilder, Clamp, ClampBuilder, ClampScrollable, Spinner, SpinnerBuilder,
-    StatusPage, StatusPageBuilder, Toast, ToastOverlay,
+    StatusPage, StatusPageBuilder, Toast, ToastBuilder, ToastOverlay, ToastPriority,
 };
 pub use navigation::{NavigationPage, NavigationPageBuilder, NavigationView};
 pub use prefs::{PreferencesDialog, PreferencesGroup, PreferencesGroupBuilder, PreferencesPage};
 pub use rows::{
-    ActionRow, ActionRowBuilder, ButtonRow, ButtonRowBuilder, ComboRow, ComboRowBuilder, EntryRow,
-    EntryRowBuilder, PasswordEntryRow, PasswordEntryRowBuilder, SpinRow, SwitchRow,
-    SwitchRowBuilder,
+    row_title, ActionRow, ActionRowBuilder, ButtonRow, ButtonRowBuilder, ComboRow, ComboRowBuilder,
+    EntryRow, EntryRowBuilder, ExpanderRow, ExpanderRowBuilder, PasswordEntryRow,
+    PasswordEntryRowBuilder, PreferencesRow, SpinRow, SwitchRow, SwitchRowBuilder,
 };
 pub use theme::{
     set_window_controls, window_controls, ColorScheme, Density, StyleManager, WindowControls,

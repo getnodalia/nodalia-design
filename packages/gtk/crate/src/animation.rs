@@ -75,7 +75,21 @@ struct Inner {
 #[derive(Clone)]
 pub struct TimedAnimation(Rc<Inner>);
 
+/// A [`TimedAnimation`] that does not keep it alive.
+#[derive(Clone)]
+pub struct WeakTimedAnimation(std::rc::Weak<Inner>);
+
+impl WeakTimedAnimation {
+    pub fn upgrade(&self) -> Option<TimedAnimation> {
+        self.0.upgrade().map(TimedAnimation)
+    }
+}
+
 impl TimedAnimation {
+    pub fn downgrade(&self) -> WeakTimedAnimation {
+        WeakTimedAnimation(Rc::downgrade(&self.0))
+    }
+
     pub fn new(
         widget: &impl IsA<gtk::Widget>,
         from: f64,

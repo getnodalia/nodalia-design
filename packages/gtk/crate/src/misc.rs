@@ -2,6 +2,7 @@
 
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::time::Duration;
 
 use gtk::glib;
@@ -326,9 +327,21 @@ impl Spinner {
 pub struct SpinnerBuilder {
     width_request: Option<i32>,
     height_request: Option<i32>,
+    halign: Option<gtk::Align>,
+    valign: Option<gtk::Align>,
 }
 
 impl SpinnerBuilder {
+    pub fn halign(mut self, align: gtk::Align) -> Self {
+        self.halign = Some(align);
+        self
+    }
+
+    pub fn valign(mut self, align: gtk::Align) -> Self {
+        self.valign = Some(align);
+        self
+    }
+
     pub fn width_request(mut self, w: i32) -> Self {
         self.width_request = Some(w);
         self
@@ -346,6 +359,12 @@ impl SpinnerBuilder {
         }
         if let Some(h) = self.height_request {
             s.set_height_request(h);
+        }
+        if let Some(a) = self.halign {
+            s.set_halign(a);
+        }
+        if let Some(a) = self.valign {
+            s.set_valign(a);
         }
         s
     }
@@ -365,6 +384,7 @@ mod avatar_imp {
         pub image: OnceCell<gtk::Image>,
         pub initials: OnceCell<gtk::Label>,
         pub custom: Cell<bool>,
+        pub paintable: RefCell<Option<gtk::gdk::Paintable>>,
     }
 
     #[glib::object_subclass]
@@ -434,13 +454,19 @@ glib::wrapper! {
 
 impl Default for Avatar {
     fn default() -> Self {
-        Self::new()
+        glib::Object::new()
     }
 }
 
 impl Avatar {
-    pub fn new() -> Self {
-        glib::Object::new()
+    /// An avatar `size` px across for `text`, a name, showing its initials when `show_initials`
+    /// and no image is set.
+    pub fn new(size: i32, text: Option<&str>, show_initials: bool) -> Self {
+        let a: Self = glib::Object::new();
+        a.set_size(size);
+        a.set_show_initials(show_initials);
+        a.set_text(text);
+        a
     }
 
     pub fn builder() -> AvatarBuilder {
@@ -473,9 +499,28 @@ impl Avatar {
         self.sync();
     }
 
+    pub fn text(&self) -> Option<glib::GString> {
+        let text = self.imp().text.borrow();
+        (!text.is_empty()).then(|| text.as_str().into())
+    }
+
+    pub fn custom_image(&self) -> Option<gtk::gdk::Paintable> {
+        self.imp().paintable.borrow().clone()
+    }
+
+    /// The icon shown when there is neither an image nor initials.
+    pub fn set_icon_name(&self, icon: Option<&str>) {
+        if !self.imp().custom.get() {
+            if let Some(i) = self.imp().image.get() {
+                i.set_icon_name(Some(icon.unwrap_or("avatar-default-symbolic")));
+            }
+        }
+    }
+
     pub fn set_custom_image(&self, paintable: Option<&impl IsA<gtk::gdk::Paintable>>) {
         let imp = self.imp();
         imp.custom.set(paintable.is_some());
+        imp.paintable.replace(paintable.map(|p| p.as_ref().clone()));
         if let Some(i) = imp.image.get() {
             match paintable {
                 Some(p) => i.set_paintable(Some(p)),
@@ -552,7 +597,7 @@ impl AvatarBuilder {
     }
 
     pub fn build(self) -> Avatar {
-        let a = Avatar::new();
+        let a: Avatar = glib::Object::new();
         if let Some(s) = self.size {
             a.set_size(s);
         }
@@ -576,6 +621,29 @@ pub(crate) fn clamped(available: i32, maximum: i32, child_min: i32) -> i32 {
         .min(maximum.max(child_min))
         .max(child_min.min(available))
         .max(0)
+}
+
+/// The most a clamp with `maximum` lets its child have out of `available`, when it starts
+/// narrowing the gap at `threshold`: up to the threshold the child takes all the space, and from
+/// there it eases towards the maximum instead of meeting it at once. A threshold of 0 (or one not
+/// below the maximum) leaves the plain maximum.
+pub(crate) fn tightened(available: i32, maximum: i32, threshold: i32) -> i32 {
+    if threshold <= 0 || threshold >= maximum {
+        return maximum;
+    }
+    let (lower, max) = (f64::from(threshold), f64::from(maximum));
+    // The width at which an ease-out cubic reaches the maximum with the slope it started with.
+    let upper = lower + 3.0 * (max - lower);
+    let a = f64::from(available);
+    if a <= lower {
+        return available;
+    }
+    if a >= upper {
+        return maximum;
+    }
+    let t = (a - lower) / (upper - lower);
+    let eased = 1.0 - (1.0 - t).powi(3);
+    (lower + (max - lower) * eased).round() as i32
 }
 
 /// Measures a clamped child along `orientation`.
@@ -611,6 +679,7 @@ mod clamp_imp {
     pub struct Clamp {
         pub child: RefCell<Option<gtk::Widget>>,
         pub maximum_size: Cell<i32>,
+        pub tightening_threshold: Cell<i32>,
     }
 
     impl Default for Clamp {
@@ -618,6 +687,7 @@ mod clamp_imp {
             Self {
                 child: RefCell::default(),
                 maximum_size: Cell::new(600),
+                tightening_threshold: Cell::new(0),
             }
         }
     }
@@ -663,7 +733,11 @@ mod clamp_imp {
         fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
             clamp_allocate(
                 self.child.borrow().as_ref(),
-                self.maximum_size.get(),
+                tightened(
+                    width,
+                    self.maximum_size.get(),
+                    self.tightening_threshold.get(),
+                ),
                 width,
                 height,
                 baseline,
@@ -717,6 +791,13 @@ impl Clamp {
 
     pub fn maximum_size(&self) -> i32 {
         self.imp().maximum_size.get()
+    }
+
+    /// The width from which the child stops taking all the space and eases towards the maximum;
+    /// 0, the default, clamps at the maximum straight away.
+    pub fn set_tightening_threshold(&self, threshold: i32) {
+        self.imp().tightening_threshold.set(threshold.max(0));
+        self.queue_allocate();
     }
 }
 
@@ -902,28 +983,199 @@ impl ClampScrollable {
 // ---------------------------------------------------------------------------------------------
 // Toasts
 
-/// A short message shown over the bottom of a [`ToastOverlay`] for a few seconds.
-#[derive(Clone, Debug)]
-pub struct Toast {
-    title: String,
-    timeout: u32,
+/// Whether a toast waits its turn or goes in front of the ones waiting.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ToastPriority {
+    #[default]
+    Normal,
+    /// Shown at once, before anything queued; the one showing is put back in the queue.
+    High,
+}
+
+type ToastCallback = Rc<dyn Fn(&Toast)>;
+
+#[derive(Default)]
+struct ToastInner {
+    title: RefCell<String>,
+    custom_title: RefCell<Option<gtk::Widget>>,
+    timeout: Cell<u32>,
+    button_label: RefCell<Option<String>>,
+    action_name: RefCell<Option<String>>,
+    action_target: RefCell<Option<glib::Variant>>,
+    priority: Cell<ToastPriority>,
+    on_button: RefCell<Vec<ToastCallback>>,
+    on_dismissed: RefCell<Vec<ToastCallback>>,
+    overlay: RefCell<Option<glib::WeakRef<ToastOverlay>>>,
+}
+
+/// A short message shown over the bottom of a [`ToastOverlay`], with an optional button. A
+/// handle: clones are the same toast, so it can be changed or dismissed while it shows.
+#[derive(Clone)]
+pub struct Toast(Rc<ToastInner>);
+
+impl std::fmt::Debug for Toast {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Toast")
+            .field("title", &self.title())
+            .finish()
+    }
+}
+
+impl PartialEq for Toast {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.0, &other.0)
+    }
 }
 
 impl Toast {
     pub fn new(title: &str) -> Self {
-        Self {
-            title: title.to_owned(),
-            timeout: 5,
-        }
+        let t = Self(Rc::default());
+        t.0.title.replace(title.to_owned());
+        t.0.timeout.set(5);
+        t
+    }
+
+    pub fn builder() -> ToastBuilder {
+        ToastBuilder::default()
     }
 
     /// Seconds on screen; 0 keeps it until dismissed.
-    pub fn set_timeout(&mut self, seconds: u32) {
-        self.timeout = seconds;
+    pub fn set_timeout(&self, seconds: u32) {
+        self.0.timeout.set(seconds);
     }
 
-    pub fn title(&self) -> &str {
-        &self.title
+    pub fn timeout(&self) -> u32 {
+        self.0.timeout.get()
+    }
+
+    pub fn title(&self) -> String {
+        self.0.title.borrow().clone()
+    }
+
+    pub fn set_title(&self, title: &str) {
+        self.0.title.replace(title.to_owned());
+        self.refresh();
+    }
+
+    /// A widget shown in place of the title.
+    pub fn set_custom_title(&self, widget: Option<&impl IsA<gtk::Widget>>) {
+        self.0
+            .custom_title
+            .replace(widget.map(|w| w.as_ref().clone()));
+        self.refresh();
+    }
+
+    pub fn set_button_label(&self, label: Option<&str>) {
+        self.0.button_label.replace(label.map(str::to_owned));
+        self.refresh();
+    }
+
+    /// The action the button activates, as `app.name` or `win.name`.
+    pub fn set_action_name(&self, name: Option<&str>) {
+        self.0.action_name.replace(name.map(str::to_owned));
+    }
+
+    pub fn set_action_target_value(&self, target: Option<&glib::Variant>) {
+        self.0.action_target.replace(target.cloned());
+    }
+
+    pub fn set_priority(&self, priority: ToastPriority) {
+        self.0.priority.set(priority);
+    }
+
+    pub fn priority(&self) -> ToastPriority {
+        self.0.priority.get()
+    }
+
+    pub fn connect_button_clicked<F: Fn(&Self) + 'static>(&self, f: F) {
+        self.0.on_button.borrow_mut().push(Rc::new(f));
+    }
+
+    pub fn connect_dismissed<F: Fn(&Self) + 'static>(&self, f: F) {
+        self.0.on_dismissed.borrow_mut().push(Rc::new(f));
+    }
+
+    /// Takes the toast away, whether it is showing or still waiting.
+    pub fn dismiss(&self) {
+        match self.overlay() {
+            Some(o) => o.dismiss_toast(self),
+            None => self.emit_dismissed(),
+        }
+    }
+
+    fn overlay(&self) -> Option<ToastOverlay> {
+        self.0.overlay.borrow().as_ref().and_then(|o| o.upgrade())
+    }
+
+    fn refresh(&self) {
+        if let Some(o) = self.overlay() {
+            o.refresh(self);
+        }
+    }
+
+    fn emit_button(&self) {
+        let callbacks: Vec<_> = self.0.on_button.borrow().clone();
+        for f in callbacks {
+            f(self);
+        }
+    }
+
+    fn emit_dismissed(&self) {
+        self.0.overlay.replace(None);
+        let callbacks: Vec<_> = self.0.on_dismissed.borrow().clone();
+        for f in callbacks {
+            f(self);
+        }
+    }
+}
+
+#[derive(Default)]
+#[must_use]
+pub struct ToastBuilder {
+    title: Option<String>,
+    timeout: Option<u32>,
+    button_label: Option<String>,
+    action_name: Option<String>,
+    priority: Option<ToastPriority>,
+}
+
+impl ToastBuilder {
+    pub fn title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn timeout(mut self, seconds: u32) -> Self {
+        self.timeout = Some(seconds);
+        self
+    }
+
+    pub fn button_label(mut self, label: impl Into<String>) -> Self {
+        self.button_label = Some(label.into());
+        self
+    }
+
+    pub fn action_name(mut self, name: impl Into<String>) -> Self {
+        self.action_name = Some(name.into());
+        self
+    }
+
+    pub fn priority(mut self, priority: ToastPriority) -> Self {
+        self.priority = Some(priority);
+        self
+    }
+
+    pub fn build(self) -> Toast {
+        let t = Toast::new(self.title.as_deref().unwrap_or_default());
+        if let Some(v) = self.timeout {
+            t.set_timeout(v);
+        }
+        t.set_button_label(self.button_label.as_deref());
+        t.set_action_name(self.action_name.as_deref());
+        if let Some(p) = self.priority {
+            t.set_priority(p);
+        }
+        t
     }
 }
 
@@ -934,9 +1186,11 @@ mod toast_imp {
     pub struct ToastOverlay {
         pub overlay: OnceCell<gtk::Overlay>,
         pub revealer: OnceCell<gtk::Revealer>,
+        pub title_slot: OnceCell<gtk::Box>,
         pub label: OnceCell<gtk::Label>,
+        pub button: OnceCell<gtk::Button>,
         pub queue: RefCell<VecDeque<Toast>>,
-        pub showing: Cell<bool>,
+        pub current: RefCell<Option<Toast>>,
         pub timer: RefCell<Option<glib::SourceId>>,
     }
 
@@ -962,6 +1216,13 @@ mod toast_imp {
                 .max_width_chars(48)
                 .use_markup(true)
                 .build();
+            let title_slot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+            title_slot.append(&label);
+            let button = gtk::Button::builder()
+                .valign(gtk::Align::Center)
+                .visible(false)
+                .css_classes(["flat"])
+                .build();
             let close = gtk::Button::builder()
                 .icon_name("window-close-symbolic")
                 .valign(gtk::Align::Center)
@@ -971,7 +1232,8 @@ mod toast_imp {
                 .spacing(12)
                 .css_classes(["ndl-toast"])
                 .build();
-            toast.append(&label);
+            toast.append(&title_slot);
+            toast.append(&button);
             toast.append(&close);
             let revealer = gtk::Revealer::builder()
                 .transition_type(gtk::RevealerTransitionType::SlideUp)
@@ -983,14 +1245,27 @@ mod toast_imp {
             let weak = obj.downgrade();
             close.connect_clicked(move |_| {
                 if let Some(o) = weak.upgrade() {
-                    o.dismiss();
+                    o.dismiss_current();
                 }
+            });
+            let weak = obj.downgrade();
+            button.connect_clicked(move |button| {
+                let Some(o) = weak.upgrade() else { return };
+                let Some(t) = o.imp().current.borrow().clone() else {
+                    return;
+                };
+                let action = t.0.action_name.borrow().clone();
+                if let Some(action) = action {
+                    let target = t.0.action_target.borrow().clone();
+                    let _ = button.activate_action(&action, target.as_ref());
+                }
+                t.emit_button();
+                o.dismiss_current();
             });
             let weak = obj.downgrade();
             revealer.connect_child_revealed_notify(move |r| {
                 if !r.reveals_child() && !r.is_child_revealed() {
                     if let Some(o) = weak.upgrade() {
-                        o.imp().showing.set(false);
                         o.show_next();
                     }
                 }
@@ -999,7 +1274,9 @@ mod toast_imp {
             overlay.set_parent(&*obj);
             let _ = self.overlay.set(overlay);
             let _ = self.revealer.set(revealer);
+            let _ = self.title_slot.set(title_slot);
             let _ = self.label.set(label);
+            let _ = self.button.set(button);
         }
 
         fn dispose(&self) {
@@ -1045,38 +1322,57 @@ impl ToastOverlay {
 
     pub fn add_toast(&self, toast: Toast) {
         let imp = self.imp();
+        toast.0.overlay.replace(Some(self.downgrade()));
+        let showing = imp.current.borrow().clone();
         // The same words twice in a row say nothing new; keep the one showing.
-        let repeat = imp.showing.get()
-            && imp.label.get().is_some_and(|l| l.label() == toast.title)
-            && imp.queue.borrow().is_empty();
+        let repeat = showing.as_ref().is_some_and(|s| {
+            *s == toast
+                || (s.title() == toast.title()
+                    && s.0.button_label.borrow().is_none()
+                    && toast.0.button_label.borrow().is_none()
+                    && toast.0.custom_title.borrow().is_none())
+        }) && imp.queue.borrow().is_empty();
         if repeat {
             return;
         }
-        imp.queue.borrow_mut().push_back(toast);
-        if !imp.showing.get() {
+        if toast.priority() == ToastPriority::High {
+            imp.queue.borrow_mut().push_front(toast);
+            if let Some(s) = showing {
+                // Put back behind the urgent one, then make room.
+                imp.queue.borrow_mut().insert(1, s);
+                self.hide_current();
+                return;
+            }
+        } else {
+            imp.queue.borrow_mut().push_back(toast);
+        }
+        if imp.current.borrow().is_none() {
             self.show_next();
         }
     }
 
     fn show_next(&self) {
         let imp = self.imp();
+        if imp.revealer.get().is_some_and(|r| r.reveals_child()) {
+            return;
+        }
+        imp.current.replace(None);
         let Some(toast) = imp.queue.borrow_mut().pop_front() else {
             return;
         };
-        let (Some(label), Some(revealer)) = (imp.label.get(), imp.revealer.get()) else {
-            return;
-        };
-        label.set_label(&toast.title);
-        imp.showing.set(true);
-        revealer.set_reveal_child(true);
-        if toast.timeout > 0 {
+        imp.current.replace(Some(toast.clone()));
+        self.refresh(&toast);
+        if let Some(r) = imp.revealer.get() {
+            r.set_reveal_child(true);
+        }
+        if toast.timeout() > 0 {
             let weak = self.downgrade();
             let id = glib::timeout_add_local_once(
-                Duration::from_secs(u64::from(toast.timeout)),
+                Duration::from_secs(u64::from(toast.timeout())),
                 move || {
                     if let Some(o) = weak.upgrade() {
                         o.imp().timer.take();
-                        o.dismiss();
+                        o.dismiss_current();
                     }
                 },
             );
@@ -1086,20 +1382,77 @@ impl ToastOverlay {
         }
     }
 
-    fn dismiss(&self) {
+    /// Redraws `toast` if it is the one showing.
+    fn refresh(&self, toast: &Toast) {
+        let imp = self.imp();
+        if imp.current.borrow().as_ref() != Some(toast) {
+            return;
+        }
+        let (Some(slot), Some(label), Some(button)) =
+            (imp.title_slot.get(), imp.label.get(), imp.button.get())
+        else {
+            return;
+        };
+        while let Some(c) = slot.first_child() {
+            slot.remove(&c);
+        }
+        match toast.0.custom_title.borrow().as_ref() {
+            Some(w) => {
+                if let Some(old) = w.parent().and_downcast::<gtk::Box>() {
+                    old.remove(w);
+                }
+                slot.append(w);
+            }
+            None => {
+                label.set_label(&toast.title());
+                slot.append(label);
+            }
+        }
+        match toast.0.button_label.borrow().as_deref() {
+            Some(l) if !l.is_empty() => {
+                button.set_label(l);
+                button.set_use_underline(true);
+                button.set_visible(true);
+            }
+            _ => button.set_visible(false),
+        }
+    }
+
+    fn hide_current(&self) {
         let imp = self.imp();
         if let Some(t) = imp.timer.take() {
             t.remove();
         }
         if let Some(r) = imp.revealer.get() {
             r.set_reveal_child(false);
+            if !r.is_child_revealed() {
+                self.show_next();
+            }
         }
+    }
+
+    fn dismiss_current(&self) {
+        let current = self.imp().current.borrow().clone();
+        if let Some(t) = current {
+            self.dismiss_toast(&t);
+        }
+    }
+
+    fn dismiss_toast(&self, toast: &Toast) {
+        let imp = self.imp();
+        let showing = imp.current.borrow().as_ref() == Some(toast);
+        if showing {
+            self.hide_current();
+        } else {
+            imp.queue.borrow_mut().retain(|t| t != toast);
+        }
+        toast.emit_dismissed();
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{clamped, initials_of};
+    use super::{clamped, initials_of, tightened};
 
     #[test]
     fn initials_take_first_and_last_words() {
@@ -1114,5 +1467,15 @@ mod tests {
         assert_eq!(clamped(400, 600, 100), 400);
         assert_eq!(clamped(400, 300, 350), 350);
         assert_eq!(clamped(200, 300, 350), 200);
+    }
+
+    #[test]
+    fn tightening_eases_between_threshold_and_maximum() {
+        assert_eq!(tightened(1000, 600, 0), 600);
+        assert_eq!(tightened(300, 600, 400), 300);
+        assert_eq!(tightened(400, 600, 400), 400);
+        let mid = tightened(600, 600, 400);
+        assert!(mid > 400 && mid < 600, "{mid}");
+        assert_eq!(tightened(1000, 600, 400), 600);
     }
 }

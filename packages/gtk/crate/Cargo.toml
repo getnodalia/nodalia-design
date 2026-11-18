@@ -13,6 +13,11 @@ gtk = { package = "gtk4", version = "0.11", features = ["v4_20"] }
 # For FontMap::add_font_file: the bundled fonts register for this app alone. GTK 4.20 already
 # requires Pango 1.56.
 pango = { version = "0.22", features = ["v1_56"] }
+# Optional: lets relm4's `view!` nest children inside NDL containers, as it does for GTK's own.
+relm4 = { version = "0.11", default-features = false, optional = true }
+
+[features]
+relm4 = ["dep:relm4"]
 
 # Standalone on purpose: apps take this crate as a git dependency into their own workspace.
 [workspace]

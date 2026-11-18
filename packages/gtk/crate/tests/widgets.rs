@@ -26,6 +26,11 @@ fn widgets() {
     alert_answers_after_its_handle_is_dropped();
     alert_is_centred_over_the_window();
     long_alert_keeps_its_buttons_in_view();
+    entry_row_is_an_editable_with_an_apply_button();
+    preferences_rows_are_found_by_title();
+    expander_row_holds_rows_that_show_when_expanded();
+    alert_takes_a_response_from_code();
+    navigation_reports_the_visible_page();
 }
 
 fn find_buttons(widget: &gtk::Widget, found: &mut Vec<gtk::Button>) {
@@ -189,9 +194,11 @@ fn dialog_takes_its_content_size() {
 }
 
 fn avatar_takes_its_size() {
-    let avatar = ndl::Avatar::new();
+    let avatar = ndl::Avatar::new(32, Some("Ada Lovelace"), true);
+    assert_eq!(natural(&avatar, gtk::Orientation::Horizontal), 32);
     avatar.set_size(64);
     assert_eq!(natural(&avatar, gtk::Orientation::Horizontal), 64);
+    assert_eq!(avatar.text().as_deref(), Some("Ada Lovelace"));
 }
 
 /// A scroller in the sidebar must get the pane's height, not its own natural height of ~0.
@@ -226,4 +233,97 @@ fn navigation_pops_back_to_the_root() {
     nav.push(&ndl::NavigationPage::new(&gtk::Label::new(None), "detail"));
     assert!(nav.pop());
     assert!(!nav.pop());
+}
+
+fn entry_row_is_an_editable_with_an_apply_button() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    let row = ndl::EntryRow::new();
+    let changed = Rc::new(Cell::new(0));
+    let c = changed.clone();
+    row.connect_changed(move |_| c.set(c.get() + 1));
+    row.set_text("hello");
+    assert_eq!(row.text(), "hello");
+    assert_eq!(changed.get(), 1, "one edit, one changed");
+    assert!(row.is::<gtk::Editable>());
+
+    row.set_show_apply_button(true);
+    let applied = Rc::new(Cell::new(false));
+    let a = applied.clone();
+    row.connect_apply(move |_| a.set(true));
+    row.set_text("hello again");
+    let mut buttons = Vec::new();
+    find_buttons(row.upcast_ref(), &mut buttons);
+    let apply = buttons
+        .into_iter()
+        .find(|b| b.is_visible())
+        .expect("the apply button shows once the text changes");
+    apply.emit_clicked();
+    assert!(applied.get());
+    assert!(!apply.is_visible());
+
+    let password = ndl::PasswordEntryRow::new();
+    password.set_text("secret");
+    assert_eq!(password.text(), "secret");
+}
+
+fn preferences_rows_are_found_by_title() {
+    let row = ndl::PreferencesRow::new();
+    row.set_title("Theme");
+    assert_eq!(ndl::row_title(row.upcast_ref()).as_deref(), Some("Theme"));
+    let action = ndl::ActionRow::builder().title("Name").build();
+    assert_eq!(ndl::row_title(action.upcast_ref()).as_deref(), Some("Name"));
+    assert_eq!(ndl::row_title(gtk::Label::new(None).upcast_ref()), None);
+}
+
+fn expander_row_holds_rows_that_show_when_expanded() {
+    let expander = ndl::ExpanderRow::new();
+    expander.set_title("More");
+    let inner = ndl::ActionRow::builder().title("Inside").build();
+    expander.add_row(&inner);
+    assert!(!expander.is_expanded());
+    expander.set_expanded(true);
+    assert!(expander.is_expanded());
+    expander.set_enable_expansion(false);
+    assert!(
+        !expander.is_expanded(),
+        "turning expansion off folds the row"
+    );
+}
+
+fn alert_takes_a_response_from_code() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    let alert = ndl::AlertDialog::new(Some("Delete?"), None);
+    alert.add_responses(&[("cancel", "Cancel"), ("delete", "Delete")]);
+    assert!(alert.has_response("delete"));
+    assert!(!alert.has_response("keep"));
+    let got = Rc::new(RefCell::new(String::new()));
+    let g = got.clone();
+    alert.connect_response(None, move |_, id| {
+        g.replace(id.to_owned());
+    });
+    alert.response("delete");
+    assert_eq!(*got.borrow(), "delete");
+    alert.close();
+    assert_eq!(
+        *got.borrow(),
+        "close",
+        "closing answers with the close response"
+    );
+}
+
+fn navigation_reports_the_visible_page() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    let view = ndl::NavigationView::new();
+    let seen = Rc::new(Cell::new(0));
+    let s = seen.clone();
+    view.connect_visible_page_notify(move |_| s.set(s.get() + 1));
+    view.add(&ndl::NavigationPage::new(&gtk::Label::new(None), "Root"));
+    view.push(&ndl::NavigationPage::new(&gtk::Label::new(None), "Second"));
+    let after_push = seen.get();
+    assert!(after_push >= 1);
+    view.pop();
+    assert!(seen.get() > after_push);
 }

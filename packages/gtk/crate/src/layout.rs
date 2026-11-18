@@ -297,6 +297,18 @@ impl OverlaySplitView {
         reparent(&imp.content, &imp.content_box, content);
     }
 
+    pub fn sidebar(&self) -> Option<gtk::Widget> {
+        self.imp().sidebar.borrow().clone()
+    }
+
+    pub fn content(&self) -> Option<gtk::Widget> {
+        self.imp().content.borrow().clone()
+    }
+
+    /// NDL's split view has no swipe to bring the sidebar in, so there is nothing to turn on or
+    /// off; this exists so code written for one that has keeps building.
+    pub fn set_enable_show_gesture(&self, _enable: bool) {}
+
     pub fn shows_sidebar(&self) -> bool {
         self.show_sidebar()
     }
@@ -780,5 +792,235 @@ impl BottomSheet {
 
     pub fn is_open(&self) -> bool {
         self.open()
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// NavigationSplitView
+
+mod nav_split_imp {
+    use super::*;
+
+    #[derive(glib::Properties)]
+    #[properties(wrapper_type = super::NavigationSplitView)]
+    pub struct NavigationSplitView {
+        /// One pane at a time: the sidebar, or the content with a back button to it.
+        #[property(get, set = Self::set_collapsed)]
+        pub collapsed: Cell<bool>,
+        /// While collapsed, whether the content is the pane showing.
+        #[property(get, set = Self::set_show_content)]
+        pub show_content: Cell<bool>,
+        #[property(get, set = Self::set_min)]
+        pub min_sidebar_width: Cell<f64>,
+        #[property(get, set = Self::set_max)]
+        pub max_sidebar_width: Cell<f64>,
+        #[property(get, set = Self::set_fraction)]
+        pub sidebar_width_fraction: Cell<f64>,
+        pub sidebar: RefCell<Option<gtk::Widget>>,
+        pub content: RefCell<Option<gtk::Widget>>,
+        pub sidebar_box: gtk::Box,
+        pub content_box: gtk::Box,
+    }
+
+    impl Default for NavigationSplitView {
+        fn default() -> Self {
+            Self {
+                collapsed: Cell::new(false),
+                show_content: Cell::new(false),
+                min_sidebar_width: Cell::new(180.0),
+                max_sidebar_width: Cell::new(280.0),
+                sidebar_width_fraction: Cell::new(0.25),
+                sidebar: RefCell::default(),
+                content: RefCell::default(),
+                sidebar_box: holder("ndl-split-sidebar"),
+                content_box: holder("ndl-split-content"),
+            }
+        }
+    }
+
+    impl NavigationSplitView {
+        fn set_collapsed(&self, v: bool) {
+            if self.collapsed.replace(v) != v {
+                self.sync();
+                self.obj().notify_collapsed();
+            }
+        }
+
+        fn set_show_content(&self, v: bool) {
+            if self.show_content.replace(v) != v {
+                self.sync();
+                self.obj().notify_show_content();
+            }
+        }
+
+        fn set_min(&self, v: f64) {
+            self.min_sidebar_width.set(v.max(0.0));
+            self.obj().queue_resize();
+        }
+
+        fn set_max(&self, v: f64) {
+            self.max_sidebar_width.set(v.max(0.0));
+            self.obj().queue_resize();
+        }
+
+        fn set_fraction(&self, v: f64) {
+            self.sidebar_width_fraction.set(v.clamp(0.0, 1.0));
+            self.obj().queue_resize();
+        }
+
+        pub(super) fn sync(&self) {
+            let collapsed = self.collapsed.get();
+            let content = self.show_content.get();
+            self.sidebar_box.set_visible(!collapsed || !content);
+            self.content_box.set_visible(!collapsed || content);
+            let obj = self.obj();
+            if collapsed {
+                obj.add_css_class("collapsed");
+            } else {
+                obj.remove_css_class("collapsed");
+            }
+            // Header bars decide on their back buttons when mapped or told.
+            obj.queue_resize();
+        }
+
+        fn sidebar_width(&self, width: i32) -> i32 {
+            let w = f64::from(width) * self.sidebar_width_fraction.get();
+            let w = w.clamp(
+                self.min_sidebar_width.get(),
+                self.max_sidebar_width
+                    .get()
+                    .max(self.min_sidebar_width.get()),
+            );
+            let min = self.sidebar_box.measure(gtk::Orientation::Horizontal, -1).0;
+            (w as i32).max(min).min(width)
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for NavigationSplitView {
+        const NAME: &'static str = "NdlNavigationSplitView";
+        type Type = super::NavigationSplitView;
+        type ParentType = gtk::Widget;
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.set_css_name("ndl-navigation-split-view");
+        }
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for NavigationSplitView {
+        fn constructed(&self) {
+            self.parent_constructed();
+            self.sidebar_box.set_parent(&*self.obj());
+            self.content_box.set_parent(&*self.obj());
+            self.sync();
+        }
+
+        fn dispose(&self) {
+            self.sidebar_box.unparent();
+            self.content_box.unparent();
+        }
+    }
+
+    impl WidgetImpl for NavigationSplitView {
+        fn measure(&self, orientation: gtk::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
+            let s = if self.sidebar_box.is_visible() {
+                self.sidebar_box.measure(orientation, -1)
+            } else {
+                (0, 0, -1, -1)
+            };
+            let c = if self.content_box.is_visible() {
+                self.content_box.measure(orientation, -1)
+            } else {
+                (0, 0, -1, -1)
+            };
+            let _ = for_size;
+            if orientation == gtk::Orientation::Horizontal && !self.collapsed.get() {
+                (s.0 + c.0, s.1 + c.1, -1, -1)
+            } else {
+                (s.0.max(c.0), s.1.max(c.1), -1, -1)
+            }
+        }
+
+        fn size_allocate(&self, width: i32, height: i32, _baseline: i32) {
+            if self.collapsed.get() {
+                for b in [&self.sidebar_box, &self.content_box] {
+                    if b.is_visible() {
+                        b.size_allocate(&gtk::Allocation::new(0, 0, width, height), -1);
+                    }
+                }
+                return;
+            }
+            let sw = self.sidebar_width(width);
+            let rtl = self.obj().direction() == gtk::TextDirection::Rtl;
+            let (sx, cx) = if rtl { (width - sw, 0) } else { (0, sw) };
+            self.sidebar_box
+                .size_allocate(&gtk::Allocation::new(sx, 0, sw, height), -1);
+            self.content_box.size_allocate(
+                &gtk::Allocation::new(cx, 0, (width - sw).max(0), height),
+                -1,
+            );
+        }
+    }
+}
+
+glib::wrapper! {
+    /// A sidebar beside the content; collapsed, one pane at a time, the content reached from the
+    /// sidebar and left with a back button.
+    pub struct NavigationSplitView(ObjectSubclass<nav_split_imp::NavigationSplitView>)
+        @extends gtk::Widget,
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl Default for NavigationSplitView {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NavigationSplitView {
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
+
+    pub fn set_sidebar(&self, sidebar: Option<&impl IsA<gtk::Widget>>) {
+        let imp = self.imp();
+        reparent(
+            &imp.sidebar,
+            &imp.sidebar_box,
+            sidebar.map(|w| w.as_ref().clone()),
+        );
+    }
+
+    pub fn set_content(&self, content: Option<&impl IsA<gtk::Widget>>) {
+        let imp = self.imp();
+        reparent(
+            &imp.content,
+            &imp.content_box,
+            content.map(|w| w.as_ref().clone()),
+        );
+    }
+
+    pub fn sidebar(&self) -> Option<gtk::Widget> {
+        self.imp().sidebar.borrow().clone()
+    }
+
+    pub fn content(&self) -> Option<gtk::Widget> {
+        self.imp().content.borrow().clone()
+    }
+
+    pub fn is_collapsed(&self) -> bool {
+        self.collapsed()
+    }
+
+    /// Whether `widget` sits in the content pane of a collapsed split view showing it, where a
+    /// back button returns to the sidebar.
+    pub(crate) fn content_can_go_back(widget: &gtk::Widget) -> Option<Self> {
+        let split = widget
+            .ancestor(Self::static_type())
+            .and_downcast::<Self>()?;
+        let in_content = widget.is_ancestor(&split.imp().content_box)
+            || widget == split.imp().content_box.upcast_ref::<gtk::Widget>();
+        (split.collapsed() && split.show_content() && in_content).then_some(split)
     }
 }

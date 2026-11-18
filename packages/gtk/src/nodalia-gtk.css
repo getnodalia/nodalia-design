@@ -1204,3 +1204,70 @@ scalebutton > popover button {
   border-radius: var(--ndl-radius-full);
   background-color: transparent;
 }
+
+/* A row that opens onto more rows. The header is a row of its own, so the nested list sits
+ * flush under it inside the same island. */
+.ndl-expander-row {
+  padding: 0;
+}
+
+.ndl-expander-title,
+.ndl-expander-list {
+  background-color: transparent;
+}
+
+.ndl-expander-list > row {
+  padding-left: var(--ndl-space-lg);
+}
+
+.ndl-expander-list > row:not(:first-child) {
+  border-top: var(--ndl-border-width-thin) solid var(--ndl-color-border-subtle);
+}
+
+.ndl-expander-row.expanded .ndl-expander-list {
+  border-top: var(--ndl-border-width-thin) solid var(--ndl-color-border-subtle);
+}
+
+.ndl-expander-arrow {
+  color: var(--ndl-color-text-tertiary);
+  transition: -gtk-icon-transform var(--ndl-duration-normal) var(--ndl-easing-standard);
+}
+
+.ndl-expander-row.expanded .ndl-expander-arrow {
+  -gtk-icon-transform: rotate(90deg);
+}
+
+/* The entry row's apply button: a small accent circle at the end of the text. */
+.ndl-entry-row button.suggested-action.circular {
+  min-height: calc(var(--ndl-density-control-height) - var(--ndl-space-sm));
+  min-width: calc(var(--ndl-density-control-height) - var(--ndl-space-sm));
+  padding: 0;
+}
+
+/* Two panes: the sidebar and the content are islands side by side; collapsed, the visible
+ * one fills the window. */
+ndl-navigation-split-view > .ndl-split-sidebar,
+ndl-navigation-split-view > .ndl-split-content {
+  background-color: var(--ndl-color-surface-panel);
+  border-radius: var(--ndl-component-panel-radius);
+  margin: var(--ndl-component-window-gap);
+}
+
+ndl-navigation-split-view:not(.collapsed) > .ndl-split-sidebar {
+  margin-right: 0;
+}
+
+ndl-carousel-dots {
+  padding: var(--ndl-space-sm);
+}
+
+ndl-carousel-dots .ndl-dot {
+  margin: 0 var(--ndl-space-xs);
+  border-radius: var(--ndl-radius-full);
+  background-color: var(--ndl-color-border-strong);
+  transition: background-color var(--ndl-duration-fast) var(--ndl-easing-standard);
+}
+
+ndl-carousel-dots .ndl-dot.current {
+  background-color: var(--ndl-color-accent-default);
+}

@@ -51,7 +51,46 @@ impl std::fmt::Display for ConditionError {
 
 impl std::error::Error for ConditionError {}
 
+/// The condition as text [`BreakpointCondition::parse`] reads back, lengths in px.
+impl std::fmt::Display for BreakpointCondition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let joiner = if self.any { " or " } else { " and " };
+        for (i, term) in self.terms.iter().enumerate() {
+            if i > 0 {
+                f.write_str(joiner)?;
+            }
+            let (name, v) = match term {
+                Term::MinWidth(v) => ("min-width", v),
+                Term::MaxWidth(v) => ("max-width", v),
+                Term::MinHeight(v) => ("min-height", v),
+                Term::MaxHeight(v) => ("max-height", v),
+            };
+            write!(f, "{name}: {v}px")?;
+        }
+        Ok(())
+    }
+}
+
 impl BreakpointCondition {
+    /// One length limit, as `BreakpointCondition::new_length(MaxWidth, 600.0, Px)`.
+    pub fn new_length(kind: BreakpointConditionLengthType, value: f64, unit: LengthUnit) -> Self {
+        let px = match unit {
+            LengthUnit::Px | LengthUnit::Sp => value,
+            LengthUnit::Pt => value * 4.0 / 3.0,
+        };
+        let px = if px.is_finite() { px.max(0.0) } else { 0.0 };
+        let term = match kind {
+            BreakpointConditionLengthType::MinWidth => Term::MinWidth(px),
+            BreakpointConditionLengthType::MaxWidth => Term::MaxWidth(px),
+            BreakpointConditionLengthType::MinHeight => Term::MinHeight(px),
+            BreakpointConditionLengthType::MaxHeight => Term::MaxHeight(px),
+        };
+        Self {
+            terms: vec![term],
+            any: false,
+        }
+    }
+
     /// Parses `max-width: 600px`, `min-width: 400px and max-height: 300px`, `… or …`.
     /// Units: `px`, or `pt` (1pt = 4/3 px); a bare number is px.
     pub fn parse(text: &str) -> Result<Self, ConditionError> {
@@ -72,6 +111,8 @@ impl BreakpointCondition {
             };
             let value = value.trim();
             let (number, scale) = if let Some(n) = value.strip_suffix("px") {
+                (n, 1.0)
+            } else if let Some(n) = value.strip_suffix("sp") {
                 (n, 1.0)
             } else if let Some(n) = value.strip_suffix("pt") {
                 (n, 4.0 / 3.0)
@@ -125,6 +166,8 @@ mod imp {
         pub condition: RefCell<Option<BreakpointCondition>>,
         pub(crate) setters: RefCell<Vec<Setter>>,
         pub applied: Cell<bool>,
+        /// The container the breakpoint was added to, told when the condition changes.
+        pub owner: RefCell<Option<glib::WeakRef<gtk::Widget>>>,
     }
 
     #[glib::object_subclass]
@@ -155,6 +198,24 @@ impl Breakpoint {
         let this: Self = glib::Object::new();
         this.imp().condition.replace(Some(condition));
         this
+    }
+
+    /// Replaces the condition; the container re-evaluates on its next allocation, which this
+    /// asks for.
+    pub fn set_condition(&self, condition: Option<&BreakpointCondition>) {
+        let imp = self.imp();
+        imp.condition.replace(condition.cloned());
+        if let Some(owner) = imp.owner.borrow().as_ref().and_then(|o| o.upgrade()) {
+            owner.queue_allocate();
+        }
+    }
+
+    pub fn condition(&self) -> Option<BreakpointCondition> {
+        self.imp().condition.borrow().clone()
+    }
+
+    pub(crate) fn set_owner(&self, owner: &gtk::Widget) {
+        self.imp().owner.replace(Some(owner.downgrade()));
     }
 
     /// While this breakpoint is in force, `property` of `target` is `value`.
@@ -241,6 +302,26 @@ pub(crate) struct Breakpoints {
     scheduled: Cell<bool>,
 }
 
+/// What a length in a [`BreakpointCondition`] limits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BreakpointConditionLengthType {
+    MinWidth,
+    MaxWidth,
+    MinHeight,
+    MaxHeight,
+}
+
+/// The unit of a length in a [`BreakpointCondition`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LengthUnit {
+    Px,
+    /// 1pt = 4/3 px.
+    Pt,
+    /// Pixels meant to grow with the text size. Taken as px: the condition does not follow the
+    /// text scale yet.
+    Sp,
+}
+
 impl Breakpoints {
     pub fn add(&self, breakpoint: Breakpoint) {
         self.list.borrow_mut().push(breakpoint);
@@ -303,6 +384,25 @@ mod tests {
         assert!(!c.holds(500.0, 400.0));
         let c = BreakpointCondition::parse("max-width: 100px or max-height: 100px").expect("parse");
         assert!(c.holds(500.0, 50.0));
+    }
+
+    #[test]
+    fn a_condition_prints_as_it_parses() {
+        let c = BreakpointCondition::parse("min-width: 400px and max-height: 300pt").unwrap();
+        assert_eq!(BreakpointCondition::parse(&c.to_string()).unwrap(), c);
+    }
+
+    #[test]
+    fn a_length_condition_holds_like_its_text() {
+        let c = BreakpointCondition::new_length(
+            BreakpointConditionLengthType::MaxWidth,
+            300.0,
+            LengthUnit::Pt,
+        );
+        assert_eq!(
+            c,
+            BreakpointCondition::parse("max-width: 300pt").expect("parse")
+        );
     }
 
     #[test]

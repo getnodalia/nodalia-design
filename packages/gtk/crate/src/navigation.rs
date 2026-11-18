@@ -17,6 +17,10 @@ pub(crate) fn enclosing_view(widget: &gtk::Widget) -> Option<NavigationView> {
 
 /// Whether a back button in this widget would have somewhere to go.
 pub(crate) fn can_go_back(widget: &gtk::Widget) -> bool {
+    can_pop(widget) || crate::layout::NavigationSplitView::content_can_go_back(widget).is_some()
+}
+
+fn can_pop(widget: &gtk::Widget) -> bool {
     let Some(page) = widget
         .ancestor(NavigationPage::static_type())
         .and_downcast::<NavigationPage>()
@@ -230,6 +234,7 @@ mod view_imp {
                         .param_types([super::NavigationPage::static_type()])
                         .build(),
                     Signal::builder("pushed").build(),
+                    Signal::builder("visible-page-changed").build(),
                 ]
             })
         }
@@ -322,6 +327,7 @@ impl NavigationView {
             prev.emit_by_name::<()>("hidden", &[]);
         }
         page.emit_by_name::<()>("shown", &[]);
+        self.emit_by_name::<()>("visible-page-changed", &[]);
         // The page's header bar decides on its back button when mapped; a page that is shown
         // again after a pop is already mapped, so tell it.
         let mut child = page.first_child();
@@ -525,6 +531,19 @@ impl NavigationView {
             let page = args.get(1).and_then(|v| v.get::<NavigationPage>().ok());
             if let (Some(this), Some(page)) = (this, page) {
                 f(&this, &page);
+            }
+            None
+        })
+    }
+
+    /// Calls `f` whenever another page comes to the top: a push, a pop or a replace.
+    pub fn connect_visible_page_notify<F: Fn(&Self) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("visible-page-changed", false, move |args| {
+            if let Some(view) = args.first().and_then(|v| v.get::<Self>().ok()) {
+                f(&view);
             }
             None
         })
