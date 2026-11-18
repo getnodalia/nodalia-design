@@ -10,6 +10,7 @@ propio que dice qué hace la app:
 | Ánima | arco de una pelota por tres poses, papel cebolla e interpolación en la línea de tiempo | pelota que bota |
 | Celdas | cuadrícula con una selección y su tirador | fila de celdas |
 | Forja | escuadra, arco y cota sobre papel milimetrado | línea de cota |
+| Hito | diagrama de Gantt con tareas rellenas según lo hecho, el hito al que van y el progreso total | hito sobre una línea de puntos |
 | Lámina | diapositivas apiladas con gráfico | miniaturas que crecen |
 | Letra | «Aa», líneas de texto y cursor | puntos guía y cursor |
 | Lienzo | capas con una pincelada y un pincel | pincelada |
