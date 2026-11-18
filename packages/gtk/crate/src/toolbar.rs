@@ -270,6 +270,8 @@ mod header_imp {
         pub show_start: Cell<bool>,
         pub show_end: Cell<bool>,
         pub show_back: Cell<bool>,
+        /// The title it shows for its navigation page, bound to the page's title.
+        pub page_title: RefCell<Option<(gtk::Label, glib::Binding)>>,
     }
 
     #[glib::object_subclass]
@@ -349,7 +351,9 @@ mod header_imp {
 
     impl WidgetImpl for HeaderBar {
         fn map(&self) {
-            self.obj().sync_controls();
+            let obj = self.obj();
+            obj.sync_controls();
+            obj.sync_page_title();
             self.parent_map();
         }
     }
@@ -408,6 +412,37 @@ impl HeaderBar {
 
     pub fn title_widget(&self) -> Option<gtk::Widget> {
         self.bar().and_then(|b| b.title_widget())
+    }
+
+    /// Inside a navigation page, and with no title widget of its own, the bar shows the page's
+    /// title rather than the window's.
+    fn sync_page_title(&self) {
+        let Some(bar) = self.bar() else { return };
+        let imp = self.imp();
+        let own = imp.page_title.borrow().as_ref().map(|(l, _)| l.clone());
+        let theirs = bar
+            .title_widget()
+            .filter(|t| own.as_ref().is_none_or(|l| l.upcast_ref::<gtk::Widget>() != t));
+        let page = self
+            .ancestor(crate::navigation::NavigationPage::static_type())
+            .and_downcast::<crate::navigation::NavigationPage>();
+        if let Some((label, binding)) = imp.page_title.take() {
+            binding.unbind();
+            if bar.title_widget().as_ref() == Some(label.upcast_ref()) {
+                bar.set_title_widget(None::<&gtk::Widget>);
+            }
+        }
+        let (Some(page), None) = (page, theirs) else { return };
+        let label = gtk::Label::new(None);
+        label.add_css_class("title");
+        label.set_single_line_mode(true);
+        label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        let binding = page
+            .bind_property("title", &label, "label")
+            .sync_create()
+            .build();
+        bar.set_title_widget(Some(&label));
+        imp.page_title.replace(Some((label, binding)));
     }
 
     pub fn set_show_start_title_buttons(&self, show: bool) {

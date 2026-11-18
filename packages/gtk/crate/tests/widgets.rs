@@ -33,6 +33,7 @@ fn widgets() {
     navigation_reports_the_visible_page();
     setting_the_same_value_does_not_notify();
     split_view_panes_fill_their_height();
+    header_shows_its_page_title();
 }
 
 fn find_buttons(widget: &gtk::Widget, found: &mut Vec<gtk::Button>) {
@@ -380,4 +381,35 @@ fn split_view_panes_fill_their_height() {
     split.size_allocate(&gtk::Allocation::new(0, 0, 800, 600), -1);
     assert_eq!(sidebar.height(), 600, "sidebar");
     assert_eq!(content.height(), 600, "content");
+}
+
+/// A header inside a navigation page shows the page's title, and follows it, rather than the
+/// window's: Buzón's settings showed "Settings" over every category.
+fn header_shows_its_page_title() {
+    let header = ndl::HeaderBar::new();
+    let toolbar = ndl::ToolbarView::new();
+    toolbar.add_top_bar(&header);
+    toolbar.set_content(Some(&gtk::Label::new(Some("body"))));
+    let page = ndl::NavigationPage::new(&toolbar, "System");
+    let window = ndl::Window::new();
+    window.set_title(Some("Settings"));
+    window.set_content(Some(&page));
+    window.present();
+    let context = glib::MainContext::default();
+    for _ in 0..200 {
+        if header.is_mapped() {
+            break;
+        }
+        context.iteration(true);
+    }
+    let shown = || {
+        header
+            .title_widget()
+            .and_downcast::<gtk::Label>()
+            .map(|l| l.label().to_string())
+    };
+    assert_eq!(shown().as_deref(), Some("System"));
+    page.set_title("Privacy");
+    assert_eq!(shown().as_deref(), Some("Privacy"));
+    window.close();
 }
