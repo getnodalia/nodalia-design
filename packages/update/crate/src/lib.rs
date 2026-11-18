@@ -90,6 +90,9 @@ pub enum Check {
 pub enum Error {
     /// GitHub could not be reached, or answered with an error.
     Network(String),
+    /// The package download stopped and could not be picked up again: the connection dropped
+    /// or went quiet several times in a row without a new byte.
+    Interrupted(String),
     /// GitHub's limit on anonymous API requests from this network is spent, and nothing kept
     /// can stand in. It lifts at `reset` (seconds since the epoch) when GitHub says.
     RateLimited { reset: Option<u64> },
@@ -118,6 +121,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Network(why) => write!(f, "Could not reach GitHub Releases: {why}"),
+            Error::Interrupted(why) => write!(f, "The download stopped: {why}"),
             Error::RateLimited { .. } => f.write_str(
                 "GitHub's limit on update checks from this network is spent for now. Try again later.",
             ),
@@ -153,6 +157,8 @@ impl Error {
         match self {
             E::Network(_) if es => "No se pudo conectar con GitHub. Comprueba la conexión a Internet y vuelve a intentarlo.".into(),
             E::Network(_) => "Could not connect to GitHub. Check your internet connection and try again.".into(),
+            E::Interrupted(_) if es => "La descarga se ha detenido porque la conexión dejó de responder. Comprueba la conexión a Internet y vuelve a intentarlo.".into(),
+            E::Interrupted(_) => "The download stopped because the connection stopped responding. Check your internet connection and try again.".into(),
             E::RateLimited { reset } => {
                 let minutes = reset.map(|r| r.saturating_sub(lookup::now()).div_ceil(60).max(1));
                 match (es, minutes) {

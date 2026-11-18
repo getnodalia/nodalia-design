@@ -18,7 +18,7 @@ egui = ["dep:egui"]
 egui = { version = "0.37", default-features = false, optional = true }
 sha2 = "0.10"
 serde_json = "1"
-ureq = { version = "3", features = ["platform-verifier"] }
+ureq = { version = "3.5", features = ["platform-verifier"] }
 
 # Standalone on purpose, like nodalia-gtk: apps take this crate as a git dependency into their own
 # workspace, and it has no toolkit in it, so GTK, egui and Qt-less Rust apps can all use it.
