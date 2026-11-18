@@ -19,6 +19,8 @@ mod tokens;
 pub use tokens::*;
 
 #[cfg(feature = "creator")]
+pub mod about;
+#[cfg(feature = "creator")]
 pub mod creator;
 #[cfg(feature = "engineering")]
 pub mod engineering;
