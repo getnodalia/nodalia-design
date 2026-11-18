@@ -26,6 +26,9 @@ fn holder(class: &str) -> gtk::Box {
     b.add_css_class(class);
     // Panes are rounded islands: what they hold is clipped to the corners.
     b.set_overflow(gtk::Overflow::Hidden);
+    // One child, given the whole pane whether or not it asks to expand: a page holding a
+    // scroller would otherwise get only its natural height.
+    b.set_homogeneous(true);
     b
 }
 

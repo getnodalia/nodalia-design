@@ -32,6 +32,7 @@ fn widgets() {
     alert_takes_a_response_from_code();
     navigation_reports_the_visible_page();
     setting_the_same_value_does_not_notify();
+    split_view_panes_fill_their_height();
 }
 
 fn find_buttons(widget: &gtk::Widget, found: &mut Vec<gtk::Button>) {
@@ -365,4 +366,18 @@ fn setting_the_same_value_does_not_notify() {
     let shown = sheet.reveal_bottom_bar();
     sheet.set_reveal_bottom_bar(shown);
     assert_eq!(n.get(), 0, "BottomSheet reveal-bottom-bar");
+}
+
+/// A pane's page fills the pane's height even when it does not ask to expand, so a scroller in it
+/// shows everything that fits instead of its natural height.
+fn split_view_panes_fill_their_height() {
+    let split = ndl::NavigationSplitView::new();
+    let sidebar = gtk::Label::new(Some("sidebar"));
+    let content = gtk::Label::new(Some("content"));
+    split.set_sidebar(Some(&sidebar));
+    split.set_content(Some(&content));
+    split.measure(gtk::Orientation::Horizontal, -1);
+    split.size_allocate(&gtk::Allocation::new(0, 0, 800, 600), -1);
+    assert_eq!(sidebar.height(), 600, "sidebar");
+    assert_eq!(content.height(), 600, "content");
 }
