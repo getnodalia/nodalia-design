@@ -386,9 +386,19 @@ mod switch_imp {
     #[properties(wrapper_type = super::SwitchRow)]
     pub struct SwitchRow {
         pub(crate) parts: OnceCell<Parts>,
-        #[property(get, set)]
+        #[property(get, set = Self::set_active, explicit_notify)]
         pub active: Cell<bool>,
         pub switch: OnceCell<gtk::Switch>,
+    }
+
+    impl SwitchRow {
+        /// Notifies only on a change, so a view that writes the value on every update and
+        /// listens for changes does not answer its own write.
+        fn set_active(&self, v: bool) {
+            if self.active.replace(v) != v {
+                self.obj().notify_active();
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -476,9 +486,19 @@ mod combo_imp {
     #[properties(wrapper_type = super::ComboRow)]
     pub struct ComboRow {
         pub(crate) parts: OnceCell<Parts>,
-        #[property(get, set)]
+        #[property(get, set = Self::set_selected, explicit_notify)]
         pub selected: Cell<u32>,
         pub dropdown: OnceCell<gtk::DropDown>,
+    }
+
+    impl ComboRow {
+        /// Notifies only on a change, so a view that writes the value on every update and
+        /// listens for changes does not answer its own write.
+        fn set_selected(&self, v: u32) {
+            if self.selected.replace(v) != v {
+                self.obj().notify_selected();
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -617,9 +637,19 @@ mod spin_imp {
     #[properties(wrapper_type = super::SpinRow)]
     pub struct SpinRow {
         pub(crate) parts: OnceCell<Parts>,
-        #[property(get, set)]
+        #[property(get, set = Self::set_value, explicit_notify)]
         pub value: Cell<f64>,
         pub spin: OnceCell<gtk::SpinButton>,
+    }
+
+    impl SpinRow {
+        /// Notifies only on a change, so a view that writes the value on every update and
+        /// listens for changes does not answer its own write.
+        fn set_value(&self, v: f64) {
+            if self.value.replace(v) != v {
+                self.obj().notify_value();
+            }
+        }
     }
 
     #[glib::object_subclass]
@@ -1172,11 +1202,11 @@ mod expander_imp {
     #[properties(wrapper_type = super::ExpanderRow)]
     pub struct ExpanderRow {
         pub(crate) parts: OnceCell<Parts>,
-        #[property(get, set = Self::set_expanded)]
+        #[property(get, set = Self::set_expanded, explicit_notify)]
         pub expanded: Cell<bool>,
-        #[property(get, set = Self::set_enable_expansion)]
+        #[property(get, set = Self::set_enable_expansion, explicit_notify)]
         pub enable_expansion: Cell<bool>,
-        #[property(get, set = Self::set_show_enable_switch)]
+        #[property(get, set = Self::set_show_enable_switch, explicit_notify)]
         pub show_enable_switch: Cell<bool>,
         pub revealer: OnceCell<gtk::Revealer>,
         pub list: OnceCell<gtk::ListBox>,
@@ -1206,8 +1236,11 @@ mod expander_imp {
         }
 
         fn set_show_enable_switch(&self, show: bool) {
-            self.show_enable_switch.set(show);
+            if self.show_enable_switch.replace(show) == show {
+                return;
+            }
             self.sync();
+            self.obj().notify_show_enable_switch();
         }
 
         fn sync(&self) {

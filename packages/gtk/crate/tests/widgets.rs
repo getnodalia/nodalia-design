@@ -31,6 +31,9 @@ fn widgets() {
     expander_row_holds_rows_that_show_when_expanded();
     alert_takes_a_response_from_code();
     navigation_reports_the_visible_page();
+    setting_the_same_value_does_not_notify();
+    split_view_panes_fill_their_height();
+    header_shows_its_page_title();
 }
 
 fn find_buttons(widget: &gtk::Widget, found: &mut Vec<gtk::Button>) {
@@ -326,4 +329,78 @@ fn navigation_reports_the_visible_page() {
     assert!(after_push >= 1);
     view.pop();
     assert!(seen.get() > after_push);
+}
+
+/// A view that writes a value on every update and listens for changes (relm4's `#[watch]` beside
+/// `connect_*_notify`) loops forever if writing the same value notifies again.
+fn setting_the_same_value_does_not_notify() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    fn count(object: &impl IsA<glib::Object>, property: &str) -> Rc<Cell<u32>> {
+        let n = Rc::new(Cell::new(0));
+        let c = n.clone();
+        object.connect_notify_local(Some(property), move |_, _| c.set(c.get() + 1));
+        n
+    }
+    let switch = ndl::SwitchRow::new();
+    let n = count(&switch, "active");
+    switch.set_active(true);
+    switch.set_active(true);
+    assert_eq!(n.get(), 1, "SwitchRow active");
+    let combo = ndl::ComboRow::new();
+    let n = count(&combo, "selected");
+    combo.set_selected(0);
+    assert_eq!(n.get(), 0, "ComboRow selected");
+    let expander = ndl::ExpanderRow::new();
+    let n = count(&expander, "expanded");
+    expander.set_expanded(true);
+    expander.set_expanded(true);
+    assert_eq!(n.get(), 1, "ExpanderRow expanded");
+    let split = ndl::OverlaySplitView::new();
+    let n = count(&split, "show-sidebar");
+    let shown = split.shows_sidebar();
+    split.set_show_sidebar(shown);
+    split.set_show_sidebar(!shown);
+    assert_eq!(n.get(), 1, "OverlaySplitView show-sidebar");
+    let sheet = ndl::BottomSheet::new();
+    let n = count(&sheet, "reveal-bottom-bar");
+    let shown = sheet.reveal_bottom_bar();
+    sheet.set_reveal_bottom_bar(shown);
+    assert_eq!(n.get(), 0, "BottomSheet reveal-bottom-bar");
+}
+
+/// A pane's page fills the pane's height even when it does not ask to expand, so a scroller in it
+/// shows everything that fits instead of its natural height.
+fn split_view_panes_fill_their_height() {
+    let split = ndl::NavigationSplitView::new();
+    let sidebar = gtk::Label::new(Some("sidebar"));
+    let content = gtk::Label::new(Some("content"));
+    split.set_sidebar(Some(&sidebar));
+    split.set_content(Some(&content));
+    split.measure(gtk::Orientation::Horizontal, -1);
+    split.size_allocate(&gtk::Allocation::new(0, 0, 800, 600), -1);
+    assert_eq!(sidebar.height(), 600, "sidebar");
+    assert_eq!(content.height(), 600, "content");
+}
+
+/// A header inside a navigation page shows the page's title, and follows it, rather than the
+/// window's: Buzón's settings showed "Settings" over every category.
+fn header_shows_its_page_title() {
+    let header = ndl::HeaderBar::new();
+    let toolbar = ndl::ToolbarView::new();
+    toolbar.add_top_bar(&header);
+    toolbar.set_content(Some(&gtk::Label::new(Some("body"))));
+    let page = ndl::NavigationPage::new(&toolbar, "System");
+    let window = ndl::Window::new();
+    window.set_title(Some("Settings"));
+    window.set_content(Some(&page));
+    let shown = || {
+        header
+            .title_widget()
+            .and_downcast::<gtk::Label>()
+            .map(|l| l.label().to_string())
+    };
+    assert_eq!(shown().as_deref(), Some("System"));
+    page.set_title("Privacy");
+    assert_eq!(shown().as_deref(), Some("Privacy"));
 }

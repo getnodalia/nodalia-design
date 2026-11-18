@@ -26,6 +26,9 @@ fn holder(class: &str) -> gtk::Box {
     b.add_css_class(class);
     // Panes are rounded islands: what they hold is clipped to the corners.
     b.set_overflow(gtk::Overflow::Hidden);
+    // One child, given the whole pane whether or not it asks to expand: a page holding a
+    // scroller would otherwise get only its natural height.
+    b.set_homogeneous(true);
     b
 }
 
@@ -42,9 +45,9 @@ mod split_imp {
     #[derive(glib::Properties)]
     #[properties(wrapper_type = super::OverlaySplitView)]
     pub struct OverlaySplitView {
-        #[property(get = Self::show_sidebar_value, set = Self::set_show_sidebar)]
+        #[property(get = Self::show_sidebar_value, set = Self::set_show_sidebar, explicit_notify)]
         pub show_sidebar: Cell<bool>,
-        #[property(get, set = Self::set_collapsed)]
+        #[property(get, set = Self::set_collapsed, explicit_notify)]
         pub collapsed: Cell<bool>,
         #[property(get, set = Self::set_min)]
         pub min_sidebar_width: Cell<f64>,
@@ -90,6 +93,7 @@ mod split_imp {
                 return;
             }
             self.animate(if show { 1.0 } else { 0.0 });
+            self.obj().notify_show_sidebar();
         }
 
         fn set_collapsed(&self, collapsed: bool) {
@@ -103,6 +107,7 @@ mod split_imp {
                 obj.remove_css_class("collapsed");
             }
             obj.queue_allocate();
+            obj.notify_collapsed();
         }
 
         fn set_min(&self, v: f64) {
@@ -335,9 +340,9 @@ mod sheet_imp {
     #[derive(glib::Properties)]
     #[properties(wrapper_type = super::BottomSheet)]
     pub struct BottomSheet {
-        #[property(get = Self::open_value, set = Self::set_open)]
+        #[property(get = Self::open_value, set = Self::set_open, explicit_notify)]
         pub open: Cell<bool>,
-        #[property(get = Self::reveal_value, set = Self::set_reveal)]
+        #[property(get = Self::reveal_value, set = Self::set_reveal, explicit_notify)]
         pub reveal_bottom_bar: Cell<bool>,
         #[property(get)]
         pub bottom_bar_height: Cell<i32>,
@@ -418,6 +423,7 @@ mod sheet_imp {
                 return;
             }
             self.settle(open);
+            self.obj().notify_open();
         }
 
         /// Moves to `open` from wherever the sheet is now, which after a drag is in between.
@@ -533,7 +539,7 @@ mod sheet_imp {
                 };
                 imp.open.set(open);
                 imp.settle_with(open, velocity);
-                // A property setter notifies by itself; this path does not go through one.
+                // The setter notifies on a change; this path does not go through it.
                 if open != was_open {
                     this.notify_open();
                 }
@@ -551,6 +557,7 @@ mod sheet_imp {
                 if reveal { 1.0 } else { 0.0 },
                 SLIDE_MS,
             );
+            self.obj().notify_reveal_bottom_bar();
         }
 
         fn set_handle(&self, show: bool) {
@@ -805,10 +812,10 @@ mod nav_split_imp {
     #[properties(wrapper_type = super::NavigationSplitView)]
     pub struct NavigationSplitView {
         /// One pane at a time: the sidebar, or the content with a back button to it.
-        #[property(get, set = Self::set_collapsed)]
+        #[property(get, set = Self::set_collapsed, explicit_notify)]
         pub collapsed: Cell<bool>,
         /// While collapsed, whether the content is the pane showing.
-        #[property(get, set = Self::set_show_content)]
+        #[property(get, set = Self::set_show_content, explicit_notify)]
         pub show_content: Cell<bool>,
         #[property(get, set = Self::set_min)]
         pub min_sidebar_width: Cell<f64>,
