@@ -214,6 +214,22 @@ impl ToolbarView {
         }
     }
 
+    pub fn reveals_top_bars(&self) -> bool {
+        self.imp()
+            .top
+            .borrow()
+            .as_ref()
+            .is_none_or(|top| top.is_visible())
+    }
+
+    pub fn reveals_bottom_bars(&self) -> bool {
+        self.imp()
+            .bottom
+            .borrow()
+            .as_ref()
+            .is_none_or(|bottom| bottom.is_visible())
+    }
+
     pub fn set_reveal_bottom_bars(&self, reveal: bool) {
         if let Some(bottom) = self.imp().bottom.borrow().as_ref() {
             bottom.set_visible(reveal);
@@ -301,7 +317,14 @@ mod header_imp {
             bar.pack_end(&close);
             back.connect_clicked(|button| {
                 if let Some(view) = crate::navigation::enclosing_view(button.upcast_ref()) {
-                    view.pop();
+                    if view.pop() {
+                        return;
+                    }
+                }
+                if let Some(split) =
+                    crate::layout::NavigationSplitView::content_can_go_back(button.upcast_ref())
+                {
+                    split.set_show_content(false);
                 }
             });
             close.connect_clicked(|button| {

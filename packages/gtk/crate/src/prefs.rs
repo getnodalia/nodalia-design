@@ -20,6 +20,7 @@ mod group_imp {
         pub description: OnceCell<gtk::Label>,
         pub list: OnceCell<gtk::ListBox>,
         pub extra: OnceCell<gtk::Box>,
+        pub header_suffix: OnceCell<gtk::Box>,
     }
 
     #[glib::object_subclass]
@@ -52,8 +53,15 @@ mod group_imp {
                 .visible(false)
                 .css_classes(["dim-label", "caption"])
                 .build();
+            header.set_hexpand(true);
             header.append(&title);
             header.append(&description);
+            let header_row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+            header_row.append(&header);
+            let suffix = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+            suffix.set_valign(gtk::Align::End);
+            suffix.set_visible(false);
+            header_row.append(&suffix);
             let list = gtk::ListBox::builder()
                 .selection_mode(gtk::SelectionMode::None)
                 .visible(false)
@@ -61,7 +69,7 @@ mod group_imp {
                 .build();
             let extra = gtk::Box::new(gtk::Orientation::Vertical, 12);
             extra.set_visible(false);
-            column.append(&header);
+            column.append(&header_row);
             column.append(&list);
             column.append(&extra);
             column.set_parent(&*self.obj());
@@ -69,6 +77,7 @@ mod group_imp {
             let _ = self.description.set(description);
             let _ = self.list.set(list);
             let _ = self.extra.set(extra);
+            let _ = self.header_suffix.set(suffix);
         }
 
         fn dispose(&self) {
@@ -108,6 +117,36 @@ impl PreferencesGroup {
             l.set_label(title);
             l.set_visible(!title.is_empty());
         }
+    }
+
+    pub fn title(&self) -> glib::GString {
+        self.imp()
+            .title
+            .get()
+            .map(|l| l.label())
+            .unwrap_or_default()
+    }
+
+    pub fn description(&self) -> Option<glib::GString> {
+        self.imp()
+            .description
+            .get()
+            .map(|l| l.label())
+            .filter(|d| !d.is_empty())
+    }
+
+    /// A widget at the end of the title, such as a button acting on the whole group.
+    pub fn set_header_suffix(&self, suffix: Option<&impl IsA<gtk::Widget>>) {
+        let Some(slot) = self.imp().header_suffix.get() else {
+            return;
+        };
+        while let Some(c) = slot.first_child() {
+            slot.remove(&c);
+        }
+        if let Some(w) = suffix {
+            slot.append(w);
+        }
+        slot.set_visible(suffix.is_some());
     }
 
     pub fn set_description(&self, description: Option<&str>) {

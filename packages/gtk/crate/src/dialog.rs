@@ -466,6 +466,10 @@ impl AlertDialog {
         self.0.body.set_visible(!body.is_empty());
     }
 
+    pub fn set_body_use_markup(&self, markup: bool) {
+        self.0.body.set_use_markup(markup);
+    }
+
     pub fn set_extra_child(&self, child: Option<&impl IsA<gtk::Widget>>) {
         while let Some(c) = self.0.extra.first_child() {
             self.0.extra.remove(&c);
@@ -487,6 +491,23 @@ impl AlertDialog {
         });
         self.0.buttons.append(&button);
         self.0.responses.borrow_mut().push((id.to_owned(), button));
+    }
+
+    /// Adds several responses at once, in order: `(id, label)` pairs.
+    pub fn add_responses(&self, responses: &[(&str, &str)]) {
+        for (id, label) in responses {
+            self.add_response(id, label);
+        }
+    }
+
+    pub fn has_response(&self, id: &str) -> bool {
+        self.0.responses.borrow().iter().any(|(r, _)| r == id)
+    }
+
+    pub fn set_response_label(&self, id: &str, label: &str) {
+        if let Some((_, b)) = self.0.responses.borrow().iter().find(|(r, _)| r == id) {
+            b.set_label(label);
+        }
     }
 
     pub fn set_response_appearance(&self, id: &str, appearance: ResponseAppearance) {
@@ -521,6 +542,17 @@ impl AlertDialog {
             .handlers
             .borrow_mut()
             .push((detail.map(str::to_owned), Box::new(f)));
+    }
+
+    /// Answers the alert with `id` as if its button were pressed, and closes it.
+    pub fn response(&self, id: &str) {
+        self.respond(id);
+    }
+
+    /// Closes the alert with its close response.
+    pub fn close(&self) {
+        let id = self.0.close_response.borrow().clone();
+        self.respond(&id);
     }
 
     fn respond(&self, id: &str) {

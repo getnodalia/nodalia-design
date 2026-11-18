@@ -126,6 +126,19 @@ pub(crate) fn on_row_activated(row: &gtk::ListBoxRow, f: impl Fn() + 'static) {
     });
 }
 
+/// Wraps `label` up to `lines` lines, then ellipsizes; 0 wraps without limit.
+fn set_lines(label: &gtk::Label, lines: i32) {
+    label.set_wrap(true);
+    label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+    if lines > 0 {
+        label.set_lines(lines);
+        label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    } else {
+        label.set_lines(-1);
+        label.set_ellipsize(gtk::pango::EllipsizeMode::None);
+    }
+}
+
 /// The `activated` signal, as a static of the calling class. A `Signal` registers once, so a
 /// single static shared by every row type made the second type to load panic.
 macro_rules! activated_signal {
@@ -159,6 +172,26 @@ macro_rules! row_common {
 
             pub fn subtitle(&self) -> glib::GString {
                 self.parts().subtitle.label()
+            }
+
+            /// The most lines the title wraps to before it ends in "…"; 0 for no limit.
+            pub fn set_title_lines(&self, lines: i32) {
+                set_lines(&self.parts().title, lines);
+            }
+
+            /// The most lines the subtitle wraps to before it ends in "…"; 0 for no limit.
+            pub fn set_subtitle_lines(&self, lines: i32) {
+                set_lines(&self.parts().subtitle, lines);
+            }
+
+            pub fn set_subtitle_selectable(&self, selectable: bool) {
+                self.parts().subtitle.set_selectable(selectable);
+            }
+
+            /// Whether the title and subtitle are Pango markup.
+            pub fn set_use_markup(&self, markup: bool) {
+                self.parts().title.set_use_markup(markup);
+                self.parts().subtitle.set_use_markup(markup);
             }
 
             pub fn add_prefix(&self, widget: &impl IsA<gtk::Widget>) {
@@ -541,6 +574,37 @@ impl ComboRow {
     pub fn model(&self) -> Option<gtk::gio::ListModel> {
         self.imp().dropdown.get().and_then(|d| d.model())
     }
+
+    /// How the chosen item shows in the row (and in the list, unless it has its own).
+    pub fn set_factory(&self, factory: Option<&impl IsA<gtk::ListItemFactory>>) {
+        if let Some(d) = self.imp().dropdown.get() {
+            d.set_factory(factory);
+        }
+    }
+
+    /// How each item shows in the list that opens.
+    pub fn set_list_factory(&self, factory: Option<&impl IsA<gtk::ListItemFactory>>) {
+        if let Some(d) = self.imp().dropdown.get() {
+            d.set_list_factory(factory);
+        }
+    }
+
+    pub fn selected_item(&self) -> Option<glib::Object> {
+        self.imp().dropdown.get().and_then(|d| d.selected_item())
+    }
+
+    /// Lets the list be searched by the string `expression` gives for each item.
+    pub fn set_expression(&self, expression: Option<impl AsRef<gtk::Expression>>) {
+        if let Some(d) = self.imp().dropdown.get() {
+            d.set_expression(expression);
+        }
+    }
+
+    pub fn set_enable_search(&self, enable: bool) {
+        if let Some(d) = self.imp().dropdown.get() {
+            d.set_enable_search(enable);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -616,6 +680,60 @@ impl SpinRow {
 
     pub fn spin_button(&self) -> Option<gtk::SpinButton> {
         self.imp().spin.get().cloned()
+    }
+
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
+
+    /// Steps through `adjustment` instead, which the row's value then follows.
+    pub fn set_adjustment(&self, adjustment: Option<&gtk::Adjustment>) {
+        let Some(spin) = self.imp().spin.get() else {
+            return;
+        };
+        let Some(adjustment) = adjustment else { return };
+        spin.set_adjustment(adjustment);
+        self.bind_property("value", adjustment, "value")
+            .bidirectional()
+            .sync_create()
+            .build();
+        adjustment.set_value(self.value().clamp(adjustment.lower(), adjustment.upper()));
+        self.set_value(adjustment.value());
+    }
+
+    pub fn adjustment(&self) -> Option<gtk::Adjustment> {
+        self.imp().spin.get().map(|s| s.adjustment())
+    }
+
+    pub fn set_digits(&self, digits: u32) {
+        if let Some(spin) = self.imp().spin.get() {
+            spin.set_digits(digits);
+        }
+    }
+
+    pub fn set_range(&self, min: f64, max: f64) {
+        if let Some(spin) = self.imp().spin.get() {
+            spin.set_range(min, max);
+        }
+    }
+
+    /// Whether only digits (and a sign and decimal point) can be typed.
+    pub fn set_numeric(&self, numeric: bool) {
+        if let Some(spin) = self.imp().spin.get() {
+            spin.set_numeric(numeric);
+        }
+    }
+
+    pub fn set_increments(&self, step: f64, page: f64) {
+        if let Some(spin) = self.imp().spin.get() {
+            spin.set_increments(step, page);
+        }
+    }
+}
+
+impl Default for SpinRow {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -705,76 +823,155 @@ impl ButtonRow {
 mod entry_imp {
     use super::*;
 
-    #[derive(Default)]
-    pub struct EntryRow {
-        pub(crate) parts: OnceCell<Parts>,
-        pub editable: OnceCell<gtk::Editable>,
+    /// What an entry row and a password row share: the editable they hand everything to, and
+    /// the apply button.
+    macro_rules! entry_imp {
+        ($ty:ident, $name:literal, $make:expr) => {
+            #[derive(Default)]
+            pub struct $ty {
+                pub(crate) parts: OnceCell<Parts>,
+                pub editable: OnceCell<gtk::Editable>,
+                pub apply: OnceCell<gtk::Button>,
+                /// Whether the apply button shows once the text changes.
+                pub show_apply: Cell<bool>,
+            }
+
+            #[glib::object_subclass]
+            impl ObjectSubclass for $ty {
+                const NAME: &'static str = $name;
+                type Type = super::$ty;
+                type ParentType = gtk::ListBoxRow;
+                type Interfaces = (gtk::Editable,);
+            }
+
+            impl ObjectImpl for $ty {
+                fn signals() -> &'static [Signal] {
+                    static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
+                    SIGNALS.get_or_init(|| {
+                        // `changed` is the Editable interface's, which the delegate forwards.
+                        vec![
+                            Signal::builder("activated").build(),
+                            Signal::builder("apply").build(),
+                            Signal::builder("entry-activated").build(),
+                        ]
+                    })
+                }
+
+                fn constructed(&self) {
+                    self.parent_constructed();
+                    let obj = self.obj();
+                    let make: fn() -> gtk::Editable = $make;
+                    let editable = make();
+                    let parts = self.parts.get_or_init(|| Parts::new(obj.upcast_ref()));
+                    build_entry_row(obj.upcast_ref(), parts, &editable);
+                    let apply = apply_button(obj.upcast_ref(), &editable);
+                    parts.add_suffix(&apply);
+                    let _ = self.apply.set(apply);
+                    let _ = self.editable.set(editable);
+                    obj.init_delegate();
+                }
+
+                fn dispose(&self) {
+                    self.obj().finish_delegate();
+                }
+
+                fn set_property(&self, id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+                    self.delegate_set_property(id, value, pspec);
+                }
+
+                fn property(&self, id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+                    self.delegate_get_property(id, pspec)
+                        .unwrap_or_else(|| pspec.default_value().clone())
+                }
+            }
+
+            impl WidgetImpl for $ty {
+                fn grab_focus(&self) -> bool {
+                    self.editable.get().is_some_and(|e| e.grab_focus())
+                }
+            }
+
+            impl ListBoxRowImpl for $ty {}
+
+            impl EditableImpl for $ty {
+                fn delegate(&self) -> Option<gtk::Editable> {
+                    self.editable.get().cloned()
+                }
+            }
+        };
     }
 
-    #[glib::object_subclass]
-    impl ObjectSubclass for EntryRow {
-        const NAME: &'static str = "NdlEntryRow";
-        type Type = super::EntryRow;
-        type ParentType = gtk::ListBoxRow;
-    }
-
-    impl ObjectImpl for EntryRow {
-        fn signals() -> &'static [Signal] {
-            static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
-            SIGNALS.get_or_init(|| {
-                vec![
-                    Signal::builder("activated").build(),
-                    Signal::builder("changed").build(),
-                ]
-            })
-        }
-    }
-
-    impl WidgetImpl for EntryRow {}
-    impl ListBoxRowImpl for EntryRow {}
-
-    #[derive(Default)]
-    pub struct PasswordEntryRow {
-        pub(crate) parts: OnceCell<Parts>,
-        pub editable: OnceCell<gtk::Editable>,
-    }
-
-    #[glib::object_subclass]
-    impl ObjectSubclass for PasswordEntryRow {
-        const NAME: &'static str = "NdlPasswordEntryRow";
-        type Type = super::PasswordEntryRow;
-        type ParentType = gtk::ListBoxRow;
-    }
-
-    impl ObjectImpl for PasswordEntryRow {
-        fn signals() -> &'static [Signal] {
-            static SIGNALS: OnceLock<Vec<Signal>> = OnceLock::new();
-            SIGNALS.get_or_init(|| {
-                vec![
-                    Signal::builder("activated").build(),
-                    Signal::builder("changed").build(),
-                ]
-            })
-        }
-    }
-
-    impl WidgetImpl for PasswordEntryRow {}
-    impl ListBoxRowImpl for PasswordEntryRow {}
+    entry_imp!(EntryRow, "NdlEntryRow", || gtk::Text::new().upcast());
+    entry_imp!(PasswordEntryRow, "NdlPasswordEntryRow", || {
+        let entry = gtk::PasswordEntry::builder().show_peek_icon(true).build();
+        entry.add_css_class("flat");
+        entry.upcast()
+    });
 }
 
-/// Puts the title above an editable that spans the row, and forwards its `changed`.
+/// Whether `row`, an entry or password row, asked for an apply button.
+fn shows_apply(row: &gtk::ListBoxRow) -> bool {
+    if let Some(r) = row.downcast_ref::<EntryRow>() {
+        return r.imp().show_apply.get();
+    }
+    row.downcast_ref::<PasswordEntryRow>()
+        .is_some_and(|r| r.imp().show_apply.get())
+}
+
+/// The button that confirms an edit, shown once the text changes when the row asks for it.
+/// Enter in the field does what it does.
+fn apply_button(row: &gtk::ListBoxRow, editable: &gtk::Editable) -> gtk::Button {
+    let apply = gtk::Button::from_icon_name("object-select-symbolic");
+    apply.add_css_class("suggested-action");
+    apply.add_css_class("circular");
+    apply.set_valign(gtk::Align::Center);
+    apply.set_tooltip_text(Some("Apply"));
+    apply.set_visible(false);
+    let fire = {
+        let row = row.downgrade();
+        let apply = apply.downgrade();
+        move || {
+            let (Some(row), Some(apply)) = (row.upgrade(), apply.upgrade()) else {
+                return;
+            };
+            if apply.is_visible() {
+                apply.set_visible(false);
+                row.emit_by_name::<()>("apply", &[]);
+            }
+        }
+    };
+    let on_click = fire.clone();
+    apply.connect_clicked(move |_| on_click());
+    {
+        let row = row.downgrade();
+        let apply = apply.downgrade();
+        editable.connect_changed(move |_| {
+            let (Some(row), Some(apply)) = (row.upgrade(), apply.upgrade()) else {
+                return;
+            };
+            apply.set_visible(shows_apply(&row));
+        });
+    }
+    {
+        let row = row.downgrade();
+        editable.connect_local("activate", false, move |_| {
+            if let Some(row) = row.upgrade() {
+                row.emit_by_name::<()>("entry-activated", &[]);
+            }
+            fire();
+            None
+        });
+    }
+    apply
+}
+
+/// Puts the title above an editable that spans the row.
 fn build_entry_row(row: &gtk::ListBoxRow, parts: &Parts, editable: &gtk::Editable) {
     row.set_activatable(false);
     row.add_css_class("ndl-entry-row");
     parts.title.add_css_class("caption");
     parts.titles.append(editable);
     editable.set_hexpand(true);
-    let weak = row.downgrade();
-    editable.connect_changed(move |_| {
-        if let Some(row) = weak.upgrade() {
-            row.emit_by_name::<()>("changed", &[]);
-        }
-    });
     let weak = row.downgrade();
     let focus = gtk::GestureClick::new();
     let target = editable.downgrade();
@@ -830,20 +1027,6 @@ fn keep_title_in_step(parts: &Parts, editable: &gtk::Editable) {
 macro_rules! entry_common {
     ($ty:ty, $builder:ident) => {
         impl $ty {
-            fn editable(&self) -> Option<&gtk::Editable> {
-                self.imp().editable.get()
-            }
-
-            pub fn text(&self) -> glib::GString {
-                self.editable().map(|e| e.text()).unwrap_or_default()
-            }
-
-            pub fn set_text(&self, text: &str) {
-                if let Some(e) = self.editable() {
-                    e.set_text(text);
-                }
-            }
-
             pub fn connect_changed<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId {
                 self.connect_local("changed", false, move |args| {
                     if let Some(row) = args.first().and_then(|v| v.get::<Self>().ok()) {
@@ -855,6 +1038,73 @@ macro_rules! entry_common {
 
             pub fn builder() -> $builder {
                 $builder::default()
+            }
+
+            pub fn new() -> Self {
+                glib::Object::new()
+            }
+
+            /// Shows a button to confirm the edit once the text changes; it and Enter emit
+            /// `apply`.
+            pub fn set_show_apply_button(&self, show: bool) {
+                self.imp().show_apply.set(show);
+                if !show {
+                    if let Some(b) = self.imp().apply.get() {
+                        b.set_visible(false);
+                    }
+                }
+            }
+
+            pub fn shows_apply_button(&self) -> bool {
+                self.imp().show_apply.get()
+            }
+
+            pub fn connect_apply<F: Fn(&Self) + 'static>(&self, f: F) -> glib::SignalHandlerId {
+                self.connect_local("apply", false, move |args| {
+                    if let Some(row) = args.first().and_then(|v| v.get::<Self>().ok()) {
+                        f(&row);
+                    }
+                    None
+                })
+            }
+
+            /// What is typed, for the on-screen keyboard and input methods.
+            pub fn set_input_purpose(&self, purpose: gtk::InputPurpose) {
+                if let Some(e) = self.imp().editable.get() {
+                    if e.find_property("input-purpose").is_some() {
+                        e.set_property("input-purpose", purpose);
+                    }
+                }
+            }
+
+            pub fn set_input_hints(&self, hints: gtk::InputHints) {
+                if let Some(e) = self.imp().editable.get() {
+                    if e.find_property("input-hints").is_some() {
+                        e.set_property("input-hints", hints);
+                    }
+                }
+            }
+
+            /// Whether Enter in the field also activates the window's default widget.
+            pub fn set_activates_default(&self, activates: bool) {
+                if let Some(e) = self.imp().editable.get() {
+                    if e.find_property("activates-default").is_some() {
+                        e.set_property("activates-default", activates);
+                    }
+                }
+            }
+
+            /// Enter in the field.
+            pub fn connect_entry_activated<F: Fn(&Self) + 'static>(
+                &self,
+                f: F,
+            ) -> glib::SignalHandlerId {
+                self.connect_local("entry-activated", false, move |args| {
+                    if let Some(row) = args.first().and_then(|v| v.get::<Self>().ok()) {
+                        f(&row);
+                    }
+                    None
+                })
             }
         }
 
@@ -870,33 +1120,25 @@ glib::wrapper! {
     /// A row whose value is a line of text, with its title above it.
     pub struct EntryRow(ObjectSubclass<entry_imp::EntryRow>)
         @extends gtk::ListBoxRow, gtk::Widget,
-        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
+        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget, gtk::Editable;
 }
 
 row_common!(EntryRow);
 entry_common!(EntryRow, EntryRowBuilder);
-row_builder!(EntryRowBuilder, EntryRow, { text: String }, |row, b| {
+row_builder!(EntryRowBuilder, EntryRow, { text: String, editable: bool }, |row, b| {
     if let Some(t) = &b.text {
         row.set_text(t);
     }
-});
-
-impl EntryRow {
-    pub fn new() -> Self {
-        let row: Self = glib::Object::new();
-        let text = gtk::Text::new();
-        let editable: gtk::Editable = text.upcast();
-        build_entry_row(row.upcast_ref(), row.parts(), &editable);
-        let _ = row.imp().editable.set(editable);
-        row
+    if let Some(e) = b.editable {
+        row.set_editable(e);
     }
-}
+});
 
 glib::wrapper! {
     /// An [`EntryRow`] that hides what is typed, with a button to show it.
     pub struct PasswordEntryRow(ObjectSubclass<entry_imp::PasswordEntryRow>)
         @extends gtk::ListBoxRow, gtk::Widget,
-        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
+        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget, gtk::Editable;
 }
 
 row_common!(PasswordEntryRow);
@@ -906,18 +1148,6 @@ row_builder!(PasswordEntryRowBuilder, PasswordEntryRow, { text: String }, |row, 
         row.set_text(t);
     }
 });
-
-impl PasswordEntryRow {
-    pub fn new() -> Self {
-        let row: Self = glib::Object::new();
-        let entry = gtk::PasswordEntry::builder().show_peek_icon(true).build();
-        entry.add_css_class("flat");
-        let editable: gtk::Editable = entry.upcast();
-        build_entry_row(row.upcast_ref(), row.parts(), &editable);
-        let _ = row.imp().editable.set(editable);
-        row
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -930,4 +1160,316 @@ mod tests {
         assert_eq!(digits_for(0.25), 2);
         assert_eq!(digits_for(f64::NAN), 0);
     }
+}
+
+// ---------------------------------------------------------------------------------------------
+// ExpanderRow
+
+mod expander_imp {
+    use super::*;
+
+    #[derive(Default, glib::Properties)]
+    #[properties(wrapper_type = super::ExpanderRow)]
+    pub struct ExpanderRow {
+        pub(crate) parts: OnceCell<Parts>,
+        #[property(get, set = Self::set_expanded)]
+        pub expanded: Cell<bool>,
+        #[property(get, set = Self::set_enable_expansion)]
+        pub enable_expansion: Cell<bool>,
+        #[property(get, set = Self::set_show_enable_switch)]
+        pub show_enable_switch: Cell<bool>,
+        pub revealer: OnceCell<gtk::Revealer>,
+        pub list: OnceCell<gtk::ListBox>,
+        pub arrow: OnceCell<gtk::Image>,
+        pub switch: OnceCell<gtk::Switch>,
+    }
+
+    impl ExpanderRow {
+        fn set_expanded(&self, expanded: bool) {
+            let expanded = expanded && self.enable_expansion.get();
+            if self.expanded.replace(expanded) == expanded {
+                return;
+            }
+            self.sync();
+            self.obj().notify_expanded();
+        }
+
+        fn set_enable_expansion(&self, enable: bool) {
+            if self.enable_expansion.replace(enable) == enable {
+                return;
+            }
+            if !enable && self.expanded.replace(false) {
+                self.obj().notify_expanded();
+            }
+            self.sync();
+            self.obj().notify_enable_expansion();
+        }
+
+        fn set_show_enable_switch(&self, show: bool) {
+            self.show_enable_switch.set(show);
+            self.sync();
+        }
+
+        fn sync(&self) {
+            let obj = self.obj();
+            let expanded = self.expanded.get();
+            if let Some(r) = self.revealer.get() {
+                r.set_reveal_child(expanded);
+            }
+            if let Some(a) = self.arrow.get() {
+                a.set_visible(!self.show_enable_switch.get());
+                a.set_sensitive(self.enable_expansion.get());
+            }
+            if let Some(s) = self.switch.get() {
+                s.set_visible(self.show_enable_switch.get());
+            }
+            if expanded {
+                obj.add_css_class("expanded");
+            } else {
+                obj.remove_css_class("expanded");
+            }
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for ExpanderRow {
+        const NAME: &'static str = "NdlExpanderRow";
+        type Type = super::ExpanderRow;
+        type ParentType = gtk::ListBoxRow;
+    }
+
+    #[glib::derived_properties]
+    impl ObjectImpl for ExpanderRow {
+        fn constructed(&self) {
+            self.parent_constructed();
+            let obj = self.obj();
+            self.enable_expansion.set(true);
+            obj.add_css_class("ndl-expander-row");
+            obj.set_activatable(false);
+            let parts = Parts::new(obj.upcast_ref());
+            // The header is the row's first line; the nested rows reveal below it.
+            obj.set_child(gtk::Widget::NONE);
+            let header_row = gtk::ListBoxRow::builder().child(&parts.header).build();
+            header_row.add_css_class("ndl-expander-header");
+            let header_list = gtk::ListBox::builder()
+                .selection_mode(gtk::SelectionMode::None)
+                .css_classes(["ndl-expander-title"])
+                .build();
+            header_list.append(&header_row);
+            let weak = obj.downgrade();
+            header_list.connect_row_activated(move |_, _| {
+                if let Some(row) = weak.upgrade() {
+                    row.set_expanded(!row.expanded());
+                }
+            });
+            let switch = gtk::Switch::builder()
+                .valign(gtk::Align::Center)
+                .visible(false)
+                .build();
+            obj.bind_property("enable-expansion", &switch, "active")
+                .bidirectional()
+                .sync_create()
+                .build();
+            let arrow = gtk::Image::from_icon_name("pan-end-symbolic");
+            arrow.add_css_class("ndl-expander-arrow");
+            parts.add_suffix(&switch);
+            parts.add_suffix(&arrow);
+            let list = gtk::ListBox::builder()
+                .selection_mode(gtk::SelectionMode::None)
+                .css_classes(["ndl-expander-list"])
+                .build();
+            let revealer = gtk::Revealer::builder()
+                .transition_type(gtk::RevealerTransitionType::SlideDown)
+                .child(&list)
+                .build();
+            let body = gtk::Box::new(gtk::Orientation::Vertical, 0);
+            body.append(&header_list);
+            body.append(&revealer);
+            obj.set_child(Some(&body));
+            let _ = self.parts.set(parts);
+            let _ = self.revealer.set(revealer);
+            let _ = self.list.set(list);
+            let _ = self.arrow.set(arrow);
+            let _ = self.switch.set(switch);
+            self.sync();
+        }
+    }
+
+    impl WidgetImpl for ExpanderRow {}
+    impl ListBoxRowImpl for ExpanderRow {}
+}
+
+glib::wrapper! {
+    /// A row that opens to show more rows beneath it.
+    pub struct ExpanderRow(ObjectSubclass<expander_imp::ExpanderRow>)
+        @extends gtk::ListBoxRow, gtk::Widget,
+        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+row_builder!(ExpanderRowBuilder, ExpanderRow, { expanded: bool, show_enable_switch: bool, enable_expansion: bool }, |row, b| {
+    if let Some(v) = b.show_enable_switch {
+        row.set_show_enable_switch(v);
+    }
+    if let Some(v) = b.enable_expansion {
+        row.set_enable_expansion(v);
+    }
+    if let Some(v) = b.expanded {
+        row.set_expanded(v);
+    }
+});
+
+impl Default for ExpanderRow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ExpanderRow {
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
+
+    pub fn is_expanded(&self) -> bool {
+        self.expanded()
+    }
+
+    pub fn builder() -> ExpanderRowBuilder {
+        ExpanderRowBuilder::default()
+    }
+
+    fn parts(&self) -> &Parts {
+        self.imp()
+            .parts
+            .get_or_init(|| Parts::new(self.upcast_ref()))
+    }
+
+    pub fn set_title(&self, title: &str) {
+        self.parts().set_title(title);
+    }
+
+    pub fn title(&self) -> glib::GString {
+        self.parts().title.label()
+    }
+
+    pub fn set_subtitle(&self, subtitle: &str) {
+        self.parts().set_subtitle(subtitle);
+    }
+
+    pub fn subtitle(&self) -> glib::GString {
+        self.parts().subtitle.label()
+    }
+
+    pub fn add_prefix(&self, widget: &impl IsA<gtk::Widget>) {
+        self.parts().add_prefix(widget);
+    }
+
+    /// Before the arrow.
+    pub fn add_suffix(&self, widget: &impl IsA<gtk::Widget>) {
+        self.parts().suffixes.prepend(widget);
+    }
+
+    /// A nested row, shown while expanded.
+    pub fn add_row(&self, row: &impl IsA<gtk::Widget>) {
+        if let Some(l) = self.imp().list.get() {
+            l.append(row);
+        }
+    }
+
+    /// Takes away a nested row, a prefix or a suffix.
+    pub fn remove(&self, widget: &impl IsA<gtk::Widget>) {
+        let w = widget.as_ref();
+        if let Some(l) = self.imp().list.get() {
+            let row = if w.is::<gtk::ListBoxRow>() {
+                Some(w.clone())
+            } else {
+                w.parent()
+            };
+            if let Some(row) = row.filter(|r| r.parent().as_ref() == Some(l.upcast_ref())) {
+                l.remove(&row);
+                return;
+            }
+        }
+        self.parts().remove(widget);
+    }
+
+    pub fn enables_expansion(&self) -> bool {
+        self.enable_expansion()
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// PreferencesRow
+
+mod preferences_imp {
+    use super::*;
+
+    /// What the row is called. It is not drawn: the row's child is all it shows, and the
+    /// title is what a search over the rows and a screen reader find.
+    #[derive(Default)]
+    pub struct PreferencesRow {
+        pub title: RefCell<String>,
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for PreferencesRow {
+        const NAME: &'static str = "NdlPreferencesRow";
+        type Type = super::PreferencesRow;
+        type ParentType = gtk::ListBoxRow;
+    }
+
+    impl ObjectImpl for PreferencesRow {}
+    impl WidgetImpl for PreferencesRow {}
+    impl ListBoxRowImpl for PreferencesRow {}
+}
+
+glib::wrapper! {
+    /// A row that shows only the child it is given, under a title kept for search and
+    /// accessibility.
+    pub struct PreferencesRow(ObjectSubclass<preferences_imp::PreferencesRow>)
+        @extends gtk::ListBoxRow, gtk::Widget,
+        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl Default for PreferencesRow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PreferencesRow {
+    pub fn new() -> Self {
+        glib::Object::new()
+    }
+
+    pub fn set_title(&self, title: &str) {
+        self.update_property(&[gtk::accessible::Property::Label(title)]);
+        self.imp().title.replace(title.to_owned());
+    }
+
+    pub fn title(&self) -> glib::GString {
+        self.imp().title.borrow().as_str().into()
+    }
+}
+
+/// The title of any NDL row, or `None` when `widget` is not one. For searching a list of rows
+/// without knowing which kinds it holds.
+pub fn row_title(widget: &gtk::Widget) -> Option<glib::GString> {
+    macro_rules! try_rows {
+        ($($ty:ty),*) => {
+            $(if let Some(r) = widget.downcast_ref::<$ty>() {
+                return Some(r.title());
+            })*
+        };
+    }
+    try_rows!(
+        ActionRow,
+        SwitchRow,
+        ComboRow,
+        SpinRow,
+        ButtonRow,
+        EntryRow,
+        PasswordEntryRow,
+        ExpanderRow
+    );
+    widget.downcast_ref::<PreferencesRow>().map(|r| r.title())
 }
