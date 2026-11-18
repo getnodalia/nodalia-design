@@ -420,9 +420,10 @@ impl HeaderBar {
         let Some(bar) = self.bar() else { return };
         let imp = self.imp();
         let own = imp.page_title.borrow().as_ref().map(|(l, _)| l.clone());
-        let theirs = bar
-            .title_widget()
-            .filter(|t| own.as_ref().is_none_or(|l| l.upcast_ref::<gtk::Widget>() != t));
+        let theirs = bar.title_widget().filter(|t| {
+            own.as_ref()
+                .is_none_or(|l| l.upcast_ref::<gtk::Widget>() != t)
+        });
         let page = self
             .ancestor(crate::navigation::NavigationPage::static_type())
             .and_downcast::<crate::navigation::NavigationPage>();
@@ -432,7 +433,9 @@ impl HeaderBar {
                 bar.set_title_widget(None::<&gtk::Widget>);
             }
         }
-        let (Some(page), None) = (page, theirs) else { return };
+        let (Some(page), None) = (page, theirs) else {
+            return;
+        };
         let label = gtk::Label::new(None);
         label.add_css_class("title");
         label.set_single_line_mode(true);
