@@ -95,16 +95,37 @@ def side_fade(a, w):
     d = np.clip(np.minimum(np.arange(SIZE), SIZE - 1 - np.arange(SIZE)) / w, 0, 1); d = d * d * (3 - 2 * d)
     return a * d[None, :].astype(np.float32)
 
-def make(spec, out_png):
+def cut_polygons(a, polys, off=0):
+    """Remove foreground inside manual polygons (tile px; `off` = tile origin inside `a`) -- crops a stray hand out of the frame."""
+    if not polys: return a
+    h, w = a.shape; m = Image.new('L', (w * 4, h * 4), 0); d = ImageDraw.Draw(m)
+    for poly in polys: d.polygon([((x + off) * 4, (y + off) * 4) for x, y in poly], fill=255)
+    m = np.asarray(m.resize((w, h), Image.LANCZOS), dtype=np.float32) / 255.0
+    return a * (1 - m)
+
+def make(spec, out_png, stem=None):
+    """Writes <out_png> (rounded tile, transparent corners) and, when stem is given, <stem>-square.png
+    (full-bleed field + figure, same framing, no clip) and <stem>-figure.png (figure alone on transparency)."""
     img = load(os.path.join(SRC, spec['file']))
     if spec.get('pre'): img = img.crop(tuple(spec['pre']))
     if spec.get('blur'): img = img.filter(ImageFilter.GaussianBlur(spec['blur']))
     box = spec['box']
     reg, valid = region(img, box, MARGIN)
-    m0 = model_matte(reg, spec.get('model', 'birefnet-portrait')) * (valid > 0.5)
+    m0 = model_matte(reg, spec.get('model', 'birefnet-portrait'))
+    if spec.get('bleed'):
+        # garment continues past the source edge: the model reads the replicated border as background (matte decays over the last
+        # ~8 px), so replicate the matte outward from a row/column 16 px inside the real source
+        ys, xs = np.where(valid > 0.5); y0, y1, x0, x1 = ys.min() + 16, ys.max() - 16, xs.min() + 16, xs.max() - 16
+        m0[:y0] = m0[y0:y0 + 1]; m0[y1 + 1:] = m0[y1:y1 + 1]; m0[:, :x0] = m0[:, x0:x0 + 1]; m0[:, x1 + 1:] = m0[:, x1:x1 + 1]
+    else: m0 = m0 * (valid > 0.5)
     o = round(MARGIN * SIZE); sl = (slice(o, o + SIZE), slice(o, o + SIZE))
     tile = reg.crop((o, o, o + SIZE, o + SIZE))
-    a = smooth_alpha(keep_main(m0[sl]), spec.get('sigma', 2.4), spec.get('k', 3.5), spec.get('thr', 0.56))
+    if spec.get('bleed'):
+        # the garment runs off the tile edge: clean the matte on the padded region so alpha reaches the edge, crop after
+        a = smooth_alpha(cut_polygons(keep_main(m0), spec.get('cut'), o), spec.get('sigma', 2.4), spec.get('k', 3.5), spec.get('thr', 0.56))[sl]
+    else:
+        a = cut_polygons(keep_main(m0[sl]), spec.get('cut'))
+        a = smooth_alpha(a, spec.get('sigma', 2.4), spec.get('k', 3.5), spec.get('thr', 0.56))
     a = side_fade(a, spec.get('fade', 0))
     g = grey(decontaminate(tile, a), a, gamma=spec.get('gamma', 1.0), clahe=spec.get('clahe', 1.6))
     ai = Image.fromarray((a * 255).astype(np.uint8))
@@ -113,11 +134,15 @@ def make(spec, out_png):
     lay = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0)); lay.putalpha(sh)
     canvas = Image.alpha_composite(canvas, lay)
     fig = g.convert('RGBA'); fig.putalpha(ai)
-    canvas = Image.alpha_composite(canvas, fig); canvas.putalpha(tile_mask()); canvas.save(out_png)
+    canvas = Image.alpha_composite(canvas, fig)
+    if stem:
+        canvas.convert('RGB').save(stem + '-square.png')
+        fig.save(stem + '-figure.png')
+    canvas.putalpha(tile_mask()); canvas.save(out_png)
     return dict(scale=SIZE / (box[2] - box[0]), side_left=float(a[:, :4].max(1).mean()), side_right=float(a[:, -4:].max(1).mean()))
 
 if __name__ == '__main__':
     cfg = json.load(open(os.path.join(HERE, 'figures.json')))
-    os.makedirs(os.path.join(HERE, 'out'), exist_ok=True)
+    out = os.environ.get('ICON_OUT', os.path.join(HERE, 'out')); os.makedirs(out, exist_ok=True)
     for n in (sys.argv[1:] or list(cfg)):
-        print(n, json.dumps(make(cfg[n], os.path.join(HERE, 'out', n + '.png'))), flush=True)
+        print(n, json.dumps(make(cfg[n], os.path.join(out, n + '.png'), os.path.join(out, n))), flush=True)

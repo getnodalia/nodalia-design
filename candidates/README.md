@@ -2,6 +2,8 @@
 
 Candidate app-icon portraits: black-and-white historical portrait on the app colour, 1024 px, clipped to the rounded tile (radius 112/512 = 224 px at 1024, transparent corners). One `<app>-sheet.png` per app (candidate at 360 px, plus 64 px and 16 px); the individual 1024 px PNGs sit beside them.
 
+Final choices (Daniel, 2026-11-18): `forja-eiffel`, `trama-babbage`, `vinilo-beethoven`, `pliego-franklin`, `hito-gilbreth`. For each there are three exports from the exact same framing: `<app>-<figure>.png` (rounded tile, transparent corners), `<app>-<figure>-square.png` (full-bleed 1024x1024 RGB, field + figure, no rounding, no corner transparency; keeps the figure's soft contact shadow on the field) and `<app>-<figure>-figure.png` (figure alone, transparent 1024 RGBA, no field and no shadow).
+
 Field colours are the approximations given in the brief (top / bottom); the DMG colours in `tools/dmg-background/draw_background.py` differ for Forja, Hito, Pliego and Vinilo.
 
 Cut-out: BiRefNet-portrait matte on the crop that fills the tile, main figure only, smooth contour pulled in ~0.5 px (no halo), edge colour decontamination, soft side fade where shoulders cannot fit. Scripts in `pipeline/`. `scale` = tile px per source px (below 1 = downsampled, never upscaled).
@@ -29,7 +31,7 @@ Cut-out: BiRefNet-portrait matte on the crop that fills the tile, main figure on
 |---|---|---|---|---|---|---|---|
 | `vinilo-berliner.png` | Emile Berliner | [Emile_Berliner_LCCN2014717588.tif...](https://commons.wikimedia.org/wiki/File:Emile_Berliner_LCCN2014717588.tif) | Bain News Service, publisher | Public domain | 3715x5009 | 0.29 |  |
 | `vinilo-caruso.png` | Enrico Caruso | [Mr._Enrico_Caruso_(tenor)_-_DPLA_-_98cd5...](https://commons.wikimedia.org/wiki/File:Mr._Enrico_Caruso_(tenor)_-_DPLA_-_98cd5d213377f832189a49f03fd88bae_(page_1).jpg) | Mishkin Studio, New York (photo; Commons lists book author P | Public domain | 2513x4101 | 0.37 |  |
-| `vinilo-beethoven.png` | Ludwig van Beethoven | [Joseph_Karl_Stieler%27s_Beethoven_mit_de...](https://commons.wikimedia.org/wiki/File:Joseph_Karl_Stieler%27s_Beethoven_mit_dem_Manuskript_der_Missa_solemnis.jpg) | Joseph Karl Stieler | Public domain | 4330x5389 | 0.28 | wide torso: soft side fade left/right |
+| `vinilo-beethoven.png` | Ludwig van Beethoven | [Joseph_Karl_Stieler%27s_Beethoven_mit_de...](https://commons.wikimedia.org/wiki/File:Joseph_Karl_Stieler%27s_Beethoven_mit_dem_Manuskript_der_Missa_solemnis.jpg) | Joseph Karl Stieler | Public domain | 4330x5389 | 0.27 | final cut-out: head ~0.62 of tile; coat and cravat kept whole, running off the right and bottom tile edges (no fade); quill hand cropped out; colours unchanged |
 | `vinilo-edison.png` | Thomas Edison | [Thomas_Edison2.jpg...](https://commons.wikimedia.org/wiki/File:Thomas_Edison2.jpg) | Louis Bachrach, Bachrach Studios, restored by Michel Vuijlst | Public domain | 2888x3696 | 0.64 | wide torso: soft side fade |
 
 ## Pliego

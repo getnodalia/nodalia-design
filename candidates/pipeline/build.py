@@ -22,7 +22,7 @@ for app, names in keep.items():
     sheet = Image.new('RGB', (cols * cw + 24, rows * ch + 24 + 30), BG)
     d = ImageDraw.Draw(sheet); d.text((24, 12), app.capitalize() + ' - icon candidates', fill=(40, 40, 44), font=font)
     for i, n in enumerate(names):
-        im = Image.open(os.path.join(HERE, 'out', n + '.png')).convert('RGBA')
+        im = Image.open(os.path.join(os.environ.get('ICON_OUT', os.path.join(HERE, 'out')), n + '.png')).convert('RGBA')
         im.save(os.path.join(DEST, n + '.png'))
         x, y = 24 + (i % cols) * cw, 40 + (i // cols) * ch
         sheet.paste(flat(im, 360), (x, y)); d.text((x, y + 366), n, fill=(30, 30, 34), font=font)
@@ -32,6 +32,7 @@ for app, names in keep.items():
 
 lines = ['# Icon candidates (2026-11-18)', '',
  'Candidate app-icon portraits: black-and-white historical portrait on the app colour, 1024 px, clipped to the rounded tile (radius 112/512 = 224 px at 1024, transparent corners). One `<app>-sheet.png` per app (candidate at 360 px, plus 64 px and 16 px); the individual 1024 px PNGs sit beside them.', '',
+ 'Final choices (Daniel, 2026-11-18): `forja-eiffel`, `trama-babbage`, `vinilo-beethoven`, `pliego-franklin`, `hito-gilbreth`. For each there are three exports from the exact same framing: `<app>-<figure>.png` (rounded tile, transparent corners), `<app>-<figure>-square.png` (full-bleed 1024x1024 RGB, field + figure, no rounding, no corner transparency; keeps the figure\'s soft contact shadow on the field) and `<app>-<figure>-figure.png` (figure alone, transparent 1024 RGBA, no field and no shadow).', '',
  'Field colours are the approximations given in the brief (top / bottom); the DMG colours in `tools/dmg-background/draw_background.py` differ for Forja, Hito, Pliego and Vinilo.', '',
  'Cut-out: BiRefNet-portrait matte on the crop that fills the tile, main figure only, smooth contour pulled in ~0.5 px (no halo), edge colour decontamination, soft side fade where shoulders cannot fit. Scripts in `pipeline/`. `scale` = tile px per source px (below 1 = downsampled, never upscaled).', '']
 for app, names in keep.items():
