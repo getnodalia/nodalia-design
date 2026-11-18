@@ -17,10 +17,20 @@ mod carousel_imp {
         #[property(get)]
         pub position: Cell<f64>,
         /// Whether a swipe moves between pages.
-        #[property(get, set)]
+        #[property(get, set = Self::set_interactive, explicit_notify)]
         pub interactive: Cell<bool>,
         pub stack: OnceCell<gtk::Stack>,
         pub pages: RefCell<Vec<gtk::Widget>>,
+    }
+
+    impl Carousel {
+        /// Notifies only on a change, so a view that writes the value on every update and
+        /// listens for changes does not answer its own write.
+        fn set_interactive(&self, v: bool) {
+            if self.interactive.replace(v) != v {
+                self.obj().notify_interactive();
+            }
+        }
     }
 
     #[glib::object_subclass]

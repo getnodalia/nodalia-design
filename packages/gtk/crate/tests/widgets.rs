@@ -31,6 +31,7 @@ fn widgets() {
     expander_row_holds_rows_that_show_when_expanded();
     alert_takes_a_response_from_code();
     navigation_reports_the_visible_page();
+    setting_the_same_value_does_not_notify();
 }
 
 fn find_buttons(widget: &gtk::Widget, found: &mut Vec<gtk::Button>) {
@@ -326,4 +327,42 @@ fn navigation_reports_the_visible_page() {
     assert!(after_push >= 1);
     view.pop();
     assert!(seen.get() > after_push);
+}
+
+/// A view that writes a value on every update and listens for changes (relm4's `#[watch]` beside
+/// `connect_*_notify`) loops forever if writing the same value notifies again.
+fn setting_the_same_value_does_not_notify() {
+    use std::cell::Cell;
+    use std::rc::Rc;
+    fn count(object: &impl IsA<glib::Object>, property: &str) -> Rc<Cell<u32>> {
+        let n = Rc::new(Cell::new(0));
+        let c = n.clone();
+        object.connect_notify_local(Some(property), move |_, _| c.set(c.get() + 1));
+        n
+    }
+    let switch = ndl::SwitchRow::new();
+    let n = count(&switch, "active");
+    switch.set_active(true);
+    switch.set_active(true);
+    assert_eq!(n.get(), 1, "SwitchRow active");
+    let combo = ndl::ComboRow::new();
+    let n = count(&combo, "selected");
+    combo.set_selected(0);
+    assert_eq!(n.get(), 0, "ComboRow selected");
+    let expander = ndl::ExpanderRow::new();
+    let n = count(&expander, "expanded");
+    expander.set_expanded(true);
+    expander.set_expanded(true);
+    assert_eq!(n.get(), 1, "ExpanderRow expanded");
+    let split = ndl::OverlaySplitView::new();
+    let n = count(&split, "show-sidebar");
+    let shown = split.shows_sidebar();
+    split.set_show_sidebar(shown);
+    split.set_show_sidebar(!shown);
+    assert_eq!(n.get(), 1, "OverlaySplitView show-sidebar");
+    let sheet = ndl::BottomSheet::new();
+    let n = count(&sheet, "reveal-bottom-bar");
+    let shown = sheet.reveal_bottom_bar();
+    sheet.set_reveal_bottom_bar(shown);
+    assert_eq!(n.get(), 0, "BottomSheet reveal-bottom-bar");
 }
