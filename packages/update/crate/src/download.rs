@@ -22,24 +22,135 @@ fn tls() -> ureq::tls::TlsConfig {
         .build()
 }
 
-pub(crate) fn get(url: &str, accept: &str) -> Result<Vec<u8>, Error> {
-    let agent: ureq::Agent = ureq::Agent::config_builder()
+/// The answer to a release lookup.
+#[derive(Debug)]
+pub(crate) enum Fetched {
+    Body {
+        body: Vec<u8>,
+        etag: Option<String>,
+    },
+    /// `304`: what was kept is still current.
+    NotModified,
+    /// GitHub's limit on anonymous API calls is spent; it lifts at `reset` (seconds since the
+    /// epoch) when GitHub says.
+    RateLimited {
+        reset: Option<u64>,
+    },
+}
+
+fn small_agent(redirects: bool) -> ureq::Agent {
+    let mut config = ureq::Agent::config_builder()
         .tls_config(tls())
         .timeout_global(Some(Duration::from_secs(30)))
-        .build()
-        .into();
-    let mut response = agent
+        // Statuses are read here: a refused request has headers worth reading.
+        .http_status_as_error(false);
+    if !redirects {
+        config = config.max_redirects(0).max_redirects_will_error(false);
+    }
+    config.build().into()
+}
+
+/// Asks for `url`, conditionally on `etag`, and reads what the status means.
+pub(crate) fn get_conditional(
+    url: &str,
+    accept: &str,
+    etag: Option<&str>,
+) -> Result<Fetched, Error> {
+    let mut request = small_agent(true)
         .get(url)
         .header("User-Agent", USER_AGENT)
         .header("Accept", accept)
-        .call()
-        .map_err(|e| Error::Network(e.to_string()))?;
-    response
+        .header("X-GitHub-Api-Version", "2022-11-28");
+    if let Some(etag) = etag {
+        request = request.header("If-None-Match", etag);
+    }
+    let mut response = request.call().map_err(|e| Error::Network(e.to_string()))?;
+    let status = response.status().as_u16();
+    let header = |name: &str| {
+        response
+            .headers()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
+    };
+    let remaining = header("x-ratelimit-remaining");
+    let reset = header("x-ratelimit-reset");
+    let retry_after = header("retry-after");
+    let etag = header("etag");
+    let body = response
         .body_mut()
         .with_config()
         .limit(8 * 1024 * 1024)
-        .read_to_vec()
-        .map_err(|e| Error::Network(e.to_string()))
+        .read_to_vec();
+    match status {
+        200..=299 => Ok(Fetched::Body {
+            body: body.map_err(|e| Error::Network(e.to_string()))?,
+            etag,
+        }),
+        304 => Ok(Fetched::NotModified),
+        _ => {
+            let text = body.unwrap_or_default();
+            match rate_limit(
+                status,
+                remaining.as_deref(),
+                reset.as_deref(),
+                retry_after.as_deref(),
+                &text,
+                crate::lookup::now(),
+            ) {
+                Some(reset) => Ok(Fetched::RateLimited { reset }),
+                None => Err(Error::Network(format!("http status: {status}"))),
+            }
+        }
+    }
+}
+
+/// Whether a refused request was refused for GitHub's rate limit, and when the limit lifts if it
+/// says: its primary limit (`x-ratelimit-remaining: 0`) or a secondary one (`retry-after`, or a
+/// message naming the limit).
+pub(crate) fn rate_limit(
+    status: u16,
+    remaining: Option<&str>,
+    reset: Option<&str>,
+    retry_after: Option<&str>,
+    body: &[u8],
+    now: u64,
+) -> Option<Option<u64>> {
+    if status != 403 && status != 429 {
+        return None;
+    }
+    let spent = remaining.map(str::trim) == Some("0");
+    let retry = retry_after.and_then(|r| r.trim().parse::<u64>().ok());
+    let says = String::from_utf8_lossy(body.get(..4096).unwrap_or(body))
+        .to_ascii_lowercase()
+        .contains("rate limit");
+    if !(spent || retry.is_some() || says || status == 429) {
+        return None;
+    }
+    let reset = match retry {
+        Some(secs) => Some(now.saturating_add(secs.min(24 * 60 * 60))),
+        None => reset
+            .and_then(|r| r.trim().parse::<u64>().ok())
+            .filter(|&r| r > now && r - now <= 24 * 60 * 60),
+    };
+    Some(reset)
+}
+
+/// Where `url` redirects to, without following it: `None` if it answers without a redirect.
+pub(crate) fn redirect_target(url: &str) -> Result<Option<String>, Error> {
+    let response = small_agent(false)
+        .head(url)
+        .header("User-Agent", USER_AGENT)
+        .call()
+        .map_err(|e| Error::Network(e.to_string()))?;
+    if !response.status().is_redirection() {
+        return Ok(None);
+    }
+    Ok(response
+        .headers()
+        .get("location")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned))
 }
 
 /// Downloads the release's package into [`update_dir`](crate::update_dir) and returns its path.
@@ -148,6 +259,49 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_spent_limit_counts_as_one() {
+        let now = 1_000;
+        // The primary limit, with its reset time.
+        assert_eq!(
+            rate_limit(403, Some("0"), Some("1600"), None, b"", now),
+            Some(Some(1600))
+        );
+        // A secondary limit: retry-after wins over the reset header.
+        assert_eq!(
+            rate_limit(403, Some("12"), Some("1600"), Some("60"), b"", now),
+            Some(Some(1060))
+        );
+        assert_eq!(rate_limit(429, None, None, None, b"", now), Some(None));
+        assert_eq!(
+            rate_limit(
+                403,
+                None,
+                None,
+                None,
+                br#"{"message":"API rate limit exceeded for 1.2.3.4."}"#,
+                now
+            ),
+            Some(None)
+        );
+        // A reset in the past, or absurdly far, is not shown.
+        assert_eq!(
+            rate_limit(403, Some("0"), Some("10"), None, b"", now),
+            Some(None)
+        );
+        assert_eq!(
+            rate_limit(403, Some("0"), Some("999999999"), None, b"", now),
+            Some(None)
+        );
+        // Any other refusal is not the limit.
+        assert_eq!(
+            rate_limit(403, Some("40"), None, None, b"Forbidden", now),
+            None
+        );
+        assert_eq!(rate_limit(404, Some("0"), None, None, b"", now), None);
+        assert_eq!(rate_limit(500, None, None, Some("5"), b"", now), None);
+    }
 
     #[test]
     fn hex_is_lower_case_and_padded() {

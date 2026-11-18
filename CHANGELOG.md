@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Corregido
+- `nodalia-update`: buscar actualizaciones ya no falla con «http status: 403» cuando se agota el límite de GitHub de 60 consultas por hora sin cuenta, que comparte toda la red. La lista de versiones se guarda en disco y se pide de nuevo con `If-None-Match` (un `304` no cuenta para el límite); una lista de hace menos de cinco minutos se usa tal cual, así que «Reintentar» no gasta nada; y con el límite agotado, la página `releases/latest` (que no es la API) sigue diciendo si hay versión nueva, que se ofrece con su página. En las ventanas de egui los errores salen en el idioma de la app y dicen qué hacer, con los minutos que faltan si GitHub lo dice.
+
 ### Añadido
 - `nodalia-gtk`: lo que Buzón necesitaba para dejar libadwaita. Widgets nuevos: `Bin`, `WrapBox`, `ButtonContent`, `Carousel` con `CarouselIndicatorDots`, `ExpanderRow`, `NavigationSplitView`, `PreferencesRow` y `WeakTimedAnimation`. `EntryRow` y `PasswordEntryRow` pasan a ser `gtk::Editable` (delegado) con botón de aplicar opcional; `AlertDialog` acepta respuestas desde código; `Clamp` gana `tightening-threshold`; `Avatar` lleva texto, imagen e icono; las condiciones de punto de ruptura se imprimen como se leen y aceptan `sp`. Con la característica `relm4`, los contenedores de NDL se anidan en `view!`. `row_title` encuentra el título de cualquier fila.
 - `tools/app-portrait`: `--mask` traza la figura con un polígono en vez del recorte del modelo, para grabados cuyo fondo rayado el modelo toma por parte de la figura.

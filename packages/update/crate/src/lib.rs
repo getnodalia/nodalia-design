@@ -13,6 +13,7 @@
 
 mod apply;
 mod download;
+mod lookup;
 mod macos;
 mod notes;
 mod release;
@@ -85,10 +86,13 @@ pub enum Check {
     Available(Release),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     /// GitHub could not be reached, or answered with an error.
     Network(String),
+    /// GitHub's limit on anonymous API requests from this network is spent, and nothing kept
+    /// can stand in. It lifts at `reset` (seconds since the epoch) when GitHub says.
+    RateLimited { reset: Option<u64> },
     /// The answer was not a release.
     BadResponse,
     /// The latest release has no version tag.
@@ -114,6 +118,9 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::Network(why) => write!(f, "Could not reach GitHub Releases: {why}"),
+            Error::RateLimited { .. } => f.write_str(
+                "GitHub's limit on update checks from this network is spent for now. Try again later.",
+            ),
             Error::BadResponse => f.write_str("Unexpected response from GitHub Releases."),
             Error::NoVersion => f.write_str("The latest release has no version tag."),
             Error::NoPackage(version) => write!(
@@ -252,12 +259,16 @@ fn runs_from(appdir: Option<std::ffi::OsString>, exe: Option<PathBuf>) -> bool {
 /// Asks GitHub for the newest release with a package for this system and compares it with
 /// `app.version`. Not `releases/latest`: a z version published for one platform only must not
 /// be offered on the others.
+///
+/// The list is kept on disk and asked for again conditionally, so checks rarely count against
+/// GitHub's hourly limit on anonymous API calls; when that limit is spent anyway, the release
+/// page still says whether there is something newer, and the release is offered without a
+/// package (its page only).
 pub fn check(app: &App) -> Result<Check, Error> {
-    let url = format!(
-        "https://api.github.com/repos/{}/releases?per_page=20",
-        app.repo
-    );
-    let body = download::get(&url, "application/vnd.github+json")?;
+    let body = match lookup::releases(app)? {
+        lookup::Found::List(body) => body,
+        lookup::Found::LatestTag { tag, page } => return Ok(latest_from_page(app, tag, page)),
+    };
     // Nothing published yet is nothing newer, not an error to show.
     if release::is_empty_list(&body) {
         return Ok(Check::UpToDate);
@@ -272,6 +283,21 @@ pub fn check(app: &App) -> Result<Check, Error> {
         return Err(Error::NoPackage(release.version));
     }
     Ok(Check::Available(release))
+}
+
+/// A release known only by its page: offered with no package, so the app links to the page.
+fn latest_from_page(app: &App, tag: String, page: String) -> Check {
+    let version = strip_version(&tag).to_owned();
+    if version.is_empty() || compare_versions(&version, app.version) != Ordering::Greater {
+        return Check::UpToDate;
+    }
+    Check::Available(Release {
+        tag,
+        version,
+        notes: String::new(),
+        page,
+        asset: None,
+    })
 }
 
 /// Where downloads and the helper's log live: the app's cache folder, under `update/`.
@@ -302,6 +328,31 @@ fn home() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_release_known_by_its_page_is_offered_only_if_newer() {
+        let app = App {
+            name: "Prueba",
+            repo: "o/r",
+            bundle: "Prueba.app",
+            version: "1.2.0",
+            edition: None,
+        };
+        let page = "https://github.com/o/r/releases/tag/v1.3.0".to_owned();
+        match latest_from_page(&app, "v1.3.0".into(), page.clone()) {
+            Check::Available(release) => {
+                assert_eq!(release.version, "1.3.0");
+                assert_eq!(release.page, page);
+                assert!(release.asset.is_none(), "page only");
+            }
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(
+            latest_from_page(&app, "v1.2.0".into(), page.clone()),
+            Check::UpToDate
+        );
+        assert_eq!(latest_from_page(&app, "".into(), page), Check::UpToDate);
+    }
 
     #[test]
     fn only_the_appimage_this_process_runs_from_counts() {
