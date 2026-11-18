@@ -185,6 +185,33 @@ def m_forja(c, d):
     return "".join(o)
 
 
+def m_hito(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    # a Gantt chart: week columns, task bars filled as far as they are done, a milestone on each lane
+    for k in range(5):
+        x = 22 + k * 44
+        o.append(f'<line x1="{x}" y1="24" x2="{x}" y2="276" stroke="{d}" stroke-width="1.5"/>')
+    o.append(f'<line x1="132" y1="18" x2="132" y2="282" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="4 4"/>')
+    for i, (x, w, done) in enumerate(((22, 70, 1.0), (52, 86, 1.0), (80, 92, 0.55),
+                                      (112, 70, 0.3), (134, 60, 0.0), (148, 40, 0.0))):
+        y = 40 + i * 38
+        o.append(f'<rect x="{x}" y="{y}" width="{w}" height="18" rx="9" fill="{d}"/>')
+        if done > 0:
+            o.append(f'<rect x="{x}" y="{y}" width="{max(18, w * done):.0f}" height="18" rx="9" fill="#FFFFFF"/>')
+        if done >= 1.0:
+            o.append(f'<path d="M{x + w - 15},{y + 9} L{x + w - 11},{y + 13} L{x + w - 5},{y + 5}" fill="none" stroke="{c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>')
+    # the milestone the work is heading for
+    mx, my = 206, 249
+    o.append(f'<path d="M{mx},{my - 13} L{mx + 12},{my} L{mx},{my + 13} L{mx - 12},{my} Z" fill="#FFC23D" stroke="{INK}" stroke-width="2"/>')
+    # overall progress: a bar and its count of finished tasks
+    o.append(f'<rect x="22" y="318" width="182" height="40" rx="20" fill="{d}"/>')
+    o.append(f'<rect x="36" y="335" width="120" height="6" rx="3" fill="{c}"/>')
+    o.append(f'<rect x="36" y="335" width="58" height="6" rx="3" fill="#FFFFFF"/>')
+    o.append(f'<circle cx="182" cy="338" r="10" fill="#FFFFFF"/>')
+    o.append(f'<path d="M177,338 L181,342 L187,334" fill="none" stroke="{d}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>')
+    return "".join(o)
+
+
 def m_lamina(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     sw, sh = 168, 94.5
@@ -509,6 +536,12 @@ def a_forja(c):
             + arrowhead(AR, AYc, INK))
 
 
+def a_hito(c):
+    return (f'<line x1="{AL}" y1="{AYc}" x2="{AR - 12}" y2="{AYc}" stroke="{INK}" stroke-width="1.2" stroke-dasharray="2 4" stroke-linecap="round"/>'
+            f'<path d="M{AL + 22},{AYc - 9} L{AL + 31},{AYc} L{AL + 22},{AYc + 9} L{AL + 13},{AYc} Z" fill="{c}"/>'
+            + arrowhead(AR, AYc, INK))
+
+
 def a_lamina(c):
     o = []
     for i, w in enumerate((16, 20, 26)):
@@ -603,6 +636,7 @@ APPS = {
     "anima": ("Ánima", "Animación 2D", "#6B4CE8", "#5034C6", m_anima, a_anima),
     "celdas": ("Celdas", "Hojas de cálculo", "#2F9E5B", "#237A45", m_celdas, a_celdas),
     "forja": ("Forja", "Dibujo técnico y CAD", "#C47A45", "#A86536", m_forja, a_forja),
+    "hito": ("Hito", "Tareas, hitos y progreso", "#3D9A2B", "#2F7F20", m_hito, a_hito),
     "lamina": ("Lámina", "Presentaciones", "#B03C67", "#8C2D50", m_lamina, a_lamina),
     "letra": ("Letra", "Procesador de textos", "#3A9EE6", "#2479BD", m_letra, a_letra),
     "lienzo": ("Lienzo", "Edición de imagen", "#EE4F78", "#C7385E", m_lienzo, a_lienzo),
