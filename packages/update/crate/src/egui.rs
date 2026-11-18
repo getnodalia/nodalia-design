@@ -702,38 +702,13 @@ impl Words {
         }
     }
 
-    /// A failure from this crate, in the window's language: what happened and what to do.
     fn error(&self, error: &crate::Error) -> String {
-        use crate::Error as E;
-        let es = self.spanish;
-        match error {
-            E::Network(_) if es => "No se pudo conectar con GitHub. Comprueba la conexión a Internet y vuelve a intentarlo.".into(),
-            E::Network(_) => "Could not connect to GitHub. Check your internet connection and try again.".into(),
-            E::RateLimited { reset } => {
-                let minutes = reset.map(|r| r.saturating_sub(now()).div_ceil(60).max(1));
-                match (es, minutes) {
-                    (true, Some(1)) => "GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de un minuto.".into(),
-                    (true, Some(m)) => format!("GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de {m} minutos."),
-                    (true, None) => "GitHub limita cuántas veces se pueden buscar actualizaciones desde tu red, y el límite se ha agotado por ahora. Vuelve a intentarlo dentro de un rato.".into(),
-                    (false, Some(1)) => "GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in a minute.".into(),
-                    (false, Some(m)) => format!("GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in {m} minutes."),
-                    (false, None) => "GitHub limits how often updates can be checked from your network, and the limit is spent for now. Try again in a while.".into(),
-                }
-            }
-            E::BadResponse if es => "GitHub respondió algo inesperado. Vuelve a intentarlo más tarde.".into(),
-            E::BadResponse => "GitHub sent an unexpected answer. Try again later.".into(),
-            E::NoVersion if es => "La última versión publicada no tiene número de versión.".into(),
-            E::NoVersion => "The latest release has no version number.".into(),
-            E::NoPackage(v) if es => format!("Hay una versión nueva ({v}), pero aún no tiene paquete para este sistema. Vuelve a buscar en un rato."),
-            E::NoPackage(v) => format!("A new version ({v}) is out, but it has no package for this system yet. Check again in a while."),
-            E::NoDigest if es => "La versión no publica la huella SHA-256 del paquete, así que no se instala sin verificar.".into(),
-            E::NoDigest => "The release does not publish the package's SHA-256, so it is not installed unverified.".into(),
-            E::Checksum if es => "La descarga no coincide con su huella SHA-256 y se ha descartado. Vuelve a intentarlo.".into(),
-            E::Checksum => "The download does not match its SHA-256 and was discarded. Try again.".into(),
-            E::NotUpdatable if es => "Esta instalación no puede actualizarse desde la app. Descarga la versión nueva desde su página.".into(),
-            E::NotUpdatable => "This installation cannot be updated from the app. Download the new version from its page.".into(),
-            E::Refused(why) | E::Io(why) | E::Signature(why) => why.clone(),
-        }
+        let language = if self.spanish {
+            Language::Spanish
+        } else {
+            Language::English
+        };
+        error.describe(language)
     }
 
     fn elsewhere(&self, kind: &crate::InstallKind) -> &'static str {
