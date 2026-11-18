@@ -1,0 +1,269 @@
+{
+ "forja-eiffel": {
+  "file": "forja-eiffel.jpg",
+  "box": [
+   447,
+   468,
+   1740,
+   1762
+  ],
+  "colors": [
+   "#D9976A",
+   "#A9622F"
+  ]
+ },
+ "forja-brunel": {
+  "file": "forja-brunel.jpg",
+  "box": [
+   208,
+   61,
+   2051,
+   1904
+  ],
+  "colors": [
+   "#D9976A",
+   "#A9622F"
+  ]
+ },
+ "forja-nasmyth": {
+  "file": "forja-nasmyth.tif",
+  "box": [
+   682,
+   -55,
+   4094,
+   3357
+  ],
+  "colors": [
+   "#D9976A",
+   "#A9622F"
+  ],
+  "gamma": 0.7
+ },
+ "forja-tesla": {
+  "file": "forja-tesla.jpg",
+  "box": [
+   -234,
+   80,
+   3736,
+   4051
+  ],
+  "colors": [
+   "#D9976A",
+   "#A9622F"
+  ]
+ },
+ "trama-morris": {
+  "file": "trama-morris.jpg",
+  "box": [
+   -108,
+   38,
+   1404,
+   1550
+  ],
+  "colors": [
+   "#9A45E2",
+   "#7A26C9"
+  ],
+  "fade": 90
+ },
+ "trama-lovelace": {
+  "file": "trama-lovelace-b.jpg",
+  "box": [
+   322,
+   163,
+   2491,
+   2333
+  ],
+  "colors": [
+   "#9A45E2",
+   "#7A26C9"
+  ]
+ },
+ "trama-babbage": {
+  "file": "trama-babbage.jpg",
+  "box": [
+   656,
+   362,
+   2797,
+   2503
+  ],
+  "colors": [
+   "#9A45E2",
+   "#7A26C9"
+  ]
+ },
+ "trama-jacquard": {
+  "file": "trama-jacquard-b.jpeg",
+  "box": [
+   0,
+   157,
+   2218,
+   2375
+  ],
+  "colors": [
+   "#9A45E2",
+   "#7A26C9"
+  ],
+  "pre": [
+   40,
+   776,
+   2258,
+   3463
+  ],
+  "fade": 100
+ },
+ "vinilo-berliner": {
+  "file": "vinilo-berliner.tif",
+  "box": [
+   134,
+   186,
+   3697,
+   3749
+  ],
+  "colors": [
+   "#A87BFF",
+   "#5A2BD8"
+  ]
+ },
+ "vinilo-caruso": {
+  "file": "vinilo-caruso.jpg",
+  "box": [
+   -63,
+   31,
+   2728,
+   2822
+  ],
+  "colors": [
+   "#A87BFF",
+   "#5A2BD8"
+  ]
+ },
+ "vinilo-beethoven": {
+  "file": "vinilo-beethoven-a.jpg",
+  "box": [
+   628,
+   -231,
+   4330,
+   3471
+  ],
+  "colors": [
+   "#A87BFF",
+   "#5A2BD8"
+  ],
+  "fade": 110
+ },
+ "vinilo-edison": {
+  "file": "vinilo-edison-b.jpg",
+  "box": [
+   780,
+   32,
+   2392,
+   1643
+  ],
+  "colors": [
+   "#A87BFF",
+   "#5A2BD8"
+  ],
+  "fade": 110
+ },
+ "pliego-franklin": {
+  "file": "pliego-franklin.jpg",
+  "box": [
+   -92,
+   257,
+   2908,
+   3257
+  ],
+  "colors": [
+   "#7088FF",
+   "#3F5BE0"
+  ]
+ },
+ "pliego-baskerville": {
+  "file": "pliego-baskerville.jpg",
+  "box": [
+   241,
+   42,
+   2001,
+   1802
+  ],
+  "colors": [
+   "#7088FF",
+   "#3F5BE0"
+  ],
+  "fade": 110
+ },
+ "pliego-mergenthaler": {
+  "file": "pliego-mergenthaler-b.jpg",
+  "box": [
+   -260,
+   -162,
+   2913,
+   3011
+  ],
+  "colors": [
+   "#7088FF",
+   "#3F5BE0"
+  ],
+  "blur": 2.5
+ },
+ "hito-taylor-b": {
+  "file": "hito-taylor-b.jpg",
+  "box": [
+   177,
+   -137,
+   2339,
+   2025
+  ],
+  "colors": [
+   "#33C48A",
+   "#1B8F5A"
+  ],
+  "pre": [
+   0,
+   0,
+   2420,
+   2330
+  ]
+ },
+ "hito-gilbreth": {
+  "file": "hito-gilbreth.jpg",
+  "box": [
+   320,
+   39,
+   2514,
+   2233
+  ],
+  "colors": [
+   "#33C48A",
+   "#1B8F5A"
+  ]
+ },
+ "hito-taylor-seated": {
+  "file": "hito-taylor.jpg",
+  "box": [
+   461,
+   -113,
+   2344,
+   1770
+  ],
+  "colors": [
+   "#33C48A",
+   "#1B8F5A"
+  ],
+  "fade": 110
+ },
+ "hito-taylor": {
+  "file": "hito-taylor-c.jpg",
+  "box": [
+   174,
+   20,
+   1294,
+   1139
+  ],
+  "colors": [
+   "#33C48A",
+   "#1B8F5A"
+  ]
+ }
+}

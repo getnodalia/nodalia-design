@@ -1,0 +1,22 @@
+{
+ "forja-brunel": "hat brim ~0.5 of tile width",
+ "trama-morris": "coat continues past the source edge: soft side fade at right",
+ "trama-lovelace": "watercolour converted to B/W",
+ "trama-jacquard": "photo of the painting; frame cropped out; soft fade at right where the coat meets the canvas edge",
+ "vinilo-beethoven": "wide torso: soft side fade left/right",
+ "vinilo-edison": "wide torso: soft side fade",
+ "pliego-baskerville": "dark coat: soft side fade",
+ "pliego-mergenthaler": "halftone source descreened (2.5 px blur); head only, bust is just the collar; head ~0.6 of tile",
+ "hito-taylor": "1911 photo from a book scan (1359x1887); clean but a little grainy",
+ "hito-gilbreth": "head ~0.45 of tile",
+ "_dropped": [
+  "Forja - Nasmyth (forja-nasmyth.tif): the raised sleeve and the book come out as a large black mass at the left; no clean bust.",
+  "Forja - Monge: skipped as instructed (licence/size).",
+  "Trama - Lovelace (Claudet a), Jacquard a: sources too small (740 and 991 px wide).",
+  "Pliego - Bodoni: sources too small (300-350 px), skipped as instructed.",
+  "Hito - Gantt (hito-gantt-a 550x688, hito-gantt-b 371x563): the largest images on Commons are too small; a head at half tile width would need ~2-2.5x upscaling, so no candidate made.",
+  "Hito - Taylor seated (hito-taylor.jpg 2408x3635): coarse halftone dither; coat edge and fade band show pixelation. Rendered as hito-taylor-seated but dropped.",
+  "Hito - Taylor with signature plate (hito-taylor-b.jpg): clean cut-out but the source is soft (book scan); dropped for sharpness.",
+  "Hito - Gilbreth b (833x1156): too small."
+ ]
+}

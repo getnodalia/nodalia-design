@@ -1,0 +1,28 @@
+{
+ "forja": [
+  "forja-eiffel",
+  "forja-brunel",
+  "forja-tesla"
+ ],
+ "trama": [
+  "trama-morris",
+  "trama-lovelace",
+  "trama-babbage",
+  "trama-jacquard"
+ ],
+ "vinilo": [
+  "vinilo-berliner",
+  "vinilo-caruso",
+  "vinilo-beethoven",
+  "vinilo-edison"
+ ],
+ "pliego": [
+  "pliego-franklin",
+  "pliego-baskerville",
+  "pliego-mergenthaler"
+ ],
+ "hito": [
+  "hito-taylor",
+  "hito-gilbreth"
+ ]
+}
