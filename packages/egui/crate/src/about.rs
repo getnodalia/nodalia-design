@@ -23,12 +23,13 @@
 //!     links: &links,
 //!     footer: "MIT OR Apache-2.0",
 //! };
-//! if about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("about.close")) {
+//! if about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("about.close")).closed {
 //!     // close the window
 //! }
-//! let tab = about::tabs(ui, &look, &["About", "Contributors", "Models"], 0);
-//! if tab == 0 {
-//!     if let Some(i) = about::page(ui, &look, &info, |ui, rect| { /* paint the mark in rect */ }) {
+//! let tabs = about::tabs(ui, &look, &["About", "Contributors", "Models"], 0);
+//! if tabs.selected == 0 {
+//!     let page = about::page(ui, &look, &info, |ui, rect| { /* paint the mark in rect */ });
+//!     if let Some(i) = page.picked {
 //!         // open links[i].url
 //!     }
 //! }
@@ -89,10 +90,20 @@ fn font(look: &Look, size: f32, strong: bool) -> FontId {
     )
 }
 
+/// What [`heading`] drew.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Heading {
+    /// The close button was clicked.
+    pub closed: bool,
+    /// The close button, for an app that registers its widgets for automation.
+    pub close: Rect,
+    /// The whole heading row, for an app that lets the title drag the window.
+    pub row: Rect,
+}
+
 /// The window's heading: the title in the strong face at the left and the round close button at
-/// the right, at the same distance from the edge as the title. Returns whether the button was
-/// clicked.
-pub fn heading(ui: &mut Ui, look: &Look, title: &str, close_id: Id) -> bool {
+/// the right, at the same distance from the edge as the title.
+pub fn heading(ui: &mut Ui, look: &Look, title: &str, close_id: Id) -> Heading {
     let (rect, _) =
         ui.allocate_exact_size(vec2(ui.available_width(), layout::CLOSE), Sense::hover());
     ui.painter().text(
@@ -106,22 +117,41 @@ pub fn heading(ui: &mut Ui, look: &Look, title: &str, close_id: Id) -> bool {
         pos2(rect.right() - layout::CLOSE, rect.top()),
         vec2(layout::CLOSE, layout::CLOSE),
     );
-    creator::close_button(ui, look, button, close_id)
+    let closed = creator::close_button(ui, look, button, close_id);
+    Heading {
+        closed,
+        close: button,
+        row: rect,
+    }
 }
 
-/// The tab row under the heading: one pill per label, the selected one grey. Returns the index
-/// now selected.
-pub fn tabs(ui: &mut Ui, look: &Look, labels: &[&str], selected: usize) -> usize {
+/// What [`tabs`] drew.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Tabs {
+    /// The index now selected.
+    pub selected: usize,
+    /// Each tab's rectangle, in label order.
+    pub rects: Vec<Rect>,
+}
+
+/// The tab row under the heading: one pill per label, the selected one grey.
+pub fn tabs(ui: &mut Ui, look: &Look, labels: &[&str], selected: usize) -> Tabs {
     let mut now = selected;
+    let mut rects = Vec::with_capacity(labels.len());
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
         for (i, label) in labels.iter().enumerate() {
-            if creator::tab(ui, look, label, i == selected).clicked() {
+            let resp = creator::tab(ui, look, label, i == selected);
+            rects.push(resp.rect);
+            if resp.clicked() {
                 now = i;
             }
         }
     });
-    now
+    Tabs {
+        selected: now,
+        rects,
+    }
 }
 
 /// One centred line of `text`, wrapped to the available width.
@@ -138,14 +168,18 @@ fn centred(ui: &mut Ui, text: &str, font: FontId, ink: Color32) {
     ui.painter().galley(at, galley, ink);
 }
 
+/// What [`page`] drew.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Page {
+    /// The index into [`Info::links`] of the link clicked; the app opens its address.
+    pub picked: Option<usize>,
+    /// Each link's rectangle, in [`Info::links`] order.
+    pub links: Vec<Rect>,
+}
+
 /// The About page. `mark` paints the app's mark in the square it is given
-/// ([`measures::MARK`] points). Returns the index into [`Info::links`] of the link clicked.
-pub fn page(
-    ui: &mut Ui,
-    look: &Look,
-    info: &Info,
-    mark: impl FnOnce(&mut Ui, Rect),
-) -> Option<usize> {
+/// ([`measures::MARK`] points).
+pub fn page(ui: &mut Ui, look: &Look, info: &Info, mark: impl FnOnce(&mut Ui, Rect)) -> Page {
     let p = &look.palette;
     let width = ui.available_width();
     ui.add_space(14.0);
@@ -176,7 +210,7 @@ pub fn page(
         color(p.text_tertiary),
     );
     ui.add_space(14.0);
-    let picked = links(ui, look, info.links);
+    let shown = links(ui, look, info.links);
     if !info.footer.is_empty() {
         ui.add_space(16.0);
         centred(
@@ -187,11 +221,11 @@ pub fn page(
         );
     }
     ui.add_space(8.0);
-    picked
+    shown
 }
 
 /// The links, centred in rows that wrap when the window is narrow.
-fn links(ui: &mut Ui, look: &Look, links: &[Link]) -> Option<usize> {
+fn links(ui: &mut Ui, look: &Look, links: &[Link]) -> Page {
     let width = ui.available_width();
     let galleys: Vec<_> = links
         .iter()
@@ -204,6 +238,7 @@ fn links(ui: &mut Ui, look: &Look, links: &[Link]) -> Option<usize> {
         })
         .collect();
     let mut picked = None;
+    let mut rects = vec![Rect::NOTHING; links.len()];
     let mut start = 0;
     while start < links.len() {
         let mut end = start;
@@ -223,6 +258,9 @@ fn links(ui: &mut Ui, look: &Look, links: &[Link]) -> Option<usize> {
                 continue;
             };
             let rect = Rect::from_min_size(pos2(x, row.top()), vec2(g.size().x, row.height()));
+            if let Some(slot) = rects.get_mut(i) {
+                *slot = rect;
+            }
             let resp = ui.interact(rect, ui.scope_id().with(("about.link", i)), Sense::click());
             link_widget_info(&resp, l.label);
             let ink = color(look.palette.text_link);
@@ -246,7 +284,10 @@ fn links(ui: &mut Ui, look: &Look, links: &[Link]) -> Option<usize> {
         }
         start = end;
     }
-    picked
+    Page {
+        picked,
+        links: rects,
+    }
 }
 
 fn link_widget_info(resp: &Response, label: &str) {

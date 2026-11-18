@@ -49,18 +49,15 @@ fn the_window_draws_in_both_modes_and_nothing_is_clicked_untouched() {
         let look = look(mode);
         run(|ui| {
             ui.set_width(measures::WIDTH);
-            assert!(!about::heading(
-                ui,
-                &look,
-                "About Pulso",
-                egui::Id::NULL.with("x")
-            ));
-            assert_eq!(about::tabs(ui, &look, &["About", "Contributors"], 1), 1);
+            assert!(!about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("x")).closed);
+            let tabs = about::tabs(ui, &look, &["About", "Contributors"], 1);
+            assert_eq!(tabs.selected, 1);
+            assert_eq!(tabs.rects.len(), 2);
             let mut mark = None;
-            assert_eq!(
-                about::page(ui, &look, &info(), |_, rect| mark = Some(rect)),
-                None
-            );
+            let page = about::page(ui, &look, &info(), |_, rect| mark = Some(rect));
+            assert_eq!(page.picked, None);
+            assert_eq!(page.links.len(), LINKS.len());
+            assert!(page.links.iter().all(|r| r.is_positive()));
             let rect = mark.expect("the page paints the mark");
             assert_eq!(rect.size(), vec2(measures::MARK, measures::MARK));
         });
@@ -74,8 +71,10 @@ fn the_heading_is_as_tall_as_its_close_button() {
     run(|ui| {
         ui.set_width(300.0);
         let before = ui.cursor().top();
-        about::heading(ui, &look, "About", egui::Id::NULL.with("h"));
+        let heading = about::heading(ui, &look, "About", egui::Id::NULL.with("h"));
         height = ui.cursor().top() - before;
+        assert_eq!(heading.row.height(), layout::CLOSE);
+        assert_eq!(heading.close.size(), vec2(layout::CLOSE, layout::CLOSE));
     });
     assert!(height >= layout::CLOSE);
 }
@@ -107,6 +106,8 @@ fn an_empty_footer_and_no_links_still_draw() {
             suite: "",
             ..info()
         };
-        assert_eq!(about::page(ui, &look, &bare, |_, _| {}), None);
+        let page = about::page(ui, &look, &bare, |_, _| {});
+        assert_eq!(page.picked, None);
+        assert!(page.links.is_empty());
     });
 }
