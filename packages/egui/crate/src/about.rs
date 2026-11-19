@@ -130,7 +130,9 @@ fn centred(ui: &mut Ui, text: &str, font: FontId, ink: Color32) {
     let galley = ui
         .painter()
         .layout(text.to_owned(), font, ink, width.max(40.0));
-    let (rect, _) = ui.allocate_exact_size(vec2(width, galley.size().y), Sense::hover());
+    let (rect, resp) = ui.allocate_exact_size(vec2(width, galley.size().y), Sense::hover());
+    // Painted text is invisible to screen readers and to automation unless it says what it is.
+    resp.widget_info(|| WidgetInfo::labeled(Role::Label, true, text));
     let at = pos2(rect.center().x - galley.size().x / 2.0, rect.top());
     ui.painter().galley(at, galley, ink);
 }
