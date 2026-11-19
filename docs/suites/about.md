@@ -2,14 +2,13 @@
 
 Todas las apps egui de Nodalia (Office, creativas e ingeniería) muestran el mismo «Acerca de»: quien
 abre el de una sabe dónde está cada cosa en las demás. Lo dibuja `nodalia_theme::about` (feature
-`creator` del crate `nodalia-theme`); la app solo pone sus textos, su marca y sus listas.
+`creator` del crate `nodalia-theme`); la app solo pone sus textos, su marca y sus enlaces.
 
 ## La ventana
 
 ```text
 ┌──────────────────────────────────────────────────────┐
 │ Acerca de Pulso                                   (×) │  heading
-│ [Acerca de] [Colaboradores] [Modelos]                  │  tabs
 ├──────────────────────────────────────────────────────┤
 │                       (marca 96)                       │
 │                        Pulso                           │  seminegrita 26
@@ -23,20 +22,18 @@ abre el de una sabe dónde está cada cosa en las demás. Lo dibuja `nodalia_the
 
 - **Cabecera** (`about::heading`): título en seminegrita a la izquierda y el disco de cerrar de
   NDL (`creator::close_button`) a la derecha. Sin botón «Cerrar» abajo.
-- **Pestañas** (`about::tabs`): píldoras de `creator::tab`. Acerca de, Colaboradores y Modelos, en
-  ese orden; una app sin lista de modelos omite la pestaña, nunca cambia el orden.
+- **Sin pestañas**: ninguna app muestra Colaboradores ni Modelos (decisión de Daniel, 2026-11-19).
 - **Página** (`about::page`): la marca de la app (un `painter` de 96 × 96, sin icono ajeno), el
   nombre, la versión, qué es, la familia a la que pertenece, los enlaces y el pie con la licencia.
   Los enlaces son el sitio de Nodalia, la página de la app, el código y los fallos; envuelven en
   filas centradas si la ventana es estrecha.
-- Anchos: 460 en Acerca de (`measures::WIDTH`) y 820 en las pestañas con lista (`measures::WIDE`).
+- Ancho: 460 (`measures::WIDTH`).
 - La app es dueña de la ventana (modal, arrastre, posición) y abre la dirección del enlace que
   `page` devuelve; así un comando lanzado por programa sigue sin abrir nada por su cuenta.
 
 ## Qué no cambia
 
-Los créditos de código ajeno siguen donde exigen sus licencias (`NOTICE`, la pestaña Colaboradores
-y el pie). Los textos llegan ya traducidos; el módulo no tiene catálogo propio.
+Los créditos de código ajeno siguen donde exigen sus licencias (`NOTICE` y el pie). Los textos llegan ya traducidos; el módulo no tiene catálogo propio.
 
 ## Estado
 

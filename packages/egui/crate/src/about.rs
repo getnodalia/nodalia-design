@@ -1,10 +1,11 @@
-//! The About window every Nodalia egui app shows: the same heading with its round close button,
-//! the same tab row (About, Contributors, Models) and the same About page (the app's mark, name,
-//! version, a line on what it is, the suite it belongs to, the links and the licence line).
+//! The About window every Nodalia egui app shows: the same heading with its round close button and
+//! the same About page (the app's mark, name, version, a line on what it is, the suite it belongs
+//! to, the links and the licence line). There are no Contributors or Models tabs: credits live in
+//! each repository's `NOTICE`.
 //!
 //! The specification is `docs/suites/about.md`. The module only draws: the app owns the window
 //! (its modal, its drag, its placement), supplies its mark as a painter callback and its texts
-//! already translated, fills the Contributors and Models tabs with its own lists, and opens the
+//! already translated, and opens the
 //! address of the link the page reports as clicked.
 //!
 //! ```no_run
@@ -26,12 +27,9 @@
 //! if about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("about.close")).closed {
 //!     // close the window
 //! }
-//! let tabs = about::tabs(ui, &look, &["About", "Contributors", "Models"], 0);
-//! if tabs.selected == 0 {
-//!     let page = about::page(ui, &look, &info, |ui, rect| { /* paint the mark in rect */ });
-//!     if let Some(i) = page.picked {
-//!         // open links[i].url
-//!     }
+//! let page = about::page(ui, &look, &info, |ui, rect| { /* paint the mark in rect */ });
+//! if let Some(i) = page.picked {
+//!     // open links[i].url
 //! }
 //! # }
 //! ```
@@ -45,10 +43,8 @@ use crate::for_egui::color;
 
 /// The About window's measures, in points.
 pub mod measures {
-    /// The window's width on the About tab; Contributors and Models use [`WIDE`].
+    /// The window's width.
     pub const WIDTH: f32 = 460.0;
-    /// The window's width on the tabs that hold a list.
-    pub const WIDE: f32 = 820.0;
     /// The app's mark.
     pub const MARK: f32 = 96.0;
     /// Between the links of a row.
@@ -122,35 +118,6 @@ pub fn heading(ui: &mut Ui, look: &Look, title: &str, close_id: Id) -> Heading {
         closed,
         close: button,
         row: rect,
-    }
-}
-
-/// What [`tabs`] drew.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Tabs {
-    /// The index now selected.
-    pub selected: usize,
-    /// Each tab's rectangle, in label order.
-    pub rects: Vec<Rect>,
-}
-
-/// The tab row under the heading: one pill per label, the selected one grey.
-pub fn tabs(ui: &mut Ui, look: &Look, labels: &[&str], selected: usize) -> Tabs {
-    let mut now = selected;
-    let mut rects = Vec::with_capacity(labels.len());
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 4.0;
-        for (i, label) in labels.iter().enumerate() {
-            let resp = creator::tab(ui, look, label, i == selected);
-            rects.push(resp.rect);
-            if resp.clicked() {
-                now = i;
-            }
-        }
-    });
-    Tabs {
-        selected: now,
-        rects,
     }
 }
 

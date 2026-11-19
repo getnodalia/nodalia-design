@@ -50,9 +50,6 @@ fn the_window_draws_in_both_modes_and_nothing_is_clicked_untouched() {
         run(|ui| {
             ui.set_width(measures::WIDTH);
             assert!(!about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("x")).closed);
-            let tabs = about::tabs(ui, &look, &["About", "Contributors"], 1);
-            assert_eq!(tabs.selected, 1);
-            assert_eq!(tabs.rects.len(), 2);
             let mut mark = None;
             let page = about::page(ui, &look, &info(), |_, rect| mark = Some(rect));
             assert_eq!(page.picked, None);
