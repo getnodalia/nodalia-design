@@ -2,7 +2,10 @@
 
 use egui::{vec2, CursorIcon, Rect, Response, Role, Sense, Stroke, StrokeKind, Ui, WidgetInfo};
 
-use crate::{border_width, component, for_egui::color, icons, space, window_color, Mode, Palette};
+use crate::{
+    border_width, component, for_egui::color, icons, space, titlebar::Side, window_color, Mode,
+    Palette,
+};
 
 /// The space occupied by the three window controls, in logical points.
 pub const WIDTH: f32 = 3.0 * component::WINDOW_CONTROL_SIZE + 2.0 * space::XS;
@@ -47,23 +50,55 @@ pub fn show(
     maximized: bool,
     labels: Labels<'_>,
 ) -> Option<Action> {
+    show_on(
+        ui,
+        rect,
+        Side::Right,
+        palette,
+        mode,
+        focused,
+        maximized,
+        labels,
+    )
+}
+
+/// Like [`show`], on the `side` of `rect` the window buttons belong on (see [`crate::titlebar`]).
+/// At the right the order is minimize, maximize or restore, close, with close at the window's
+/// edge. At the left it is mirrored, close first, as on macOS and on a GNOME or KDE desktop set
+/// that way.
+#[allow(clippy::too_many_arguments)]
+pub fn show_on(
+    ui: &Ui,
+    rect: Rect,
+    side: Side,
+    palette: &Palette,
+    mode: Mode,
+    focused: bool,
+    maximized: bool,
+    labels: Labels<'_>,
+) -> Option<Action> {
     let size = component::WINDOW_CONTROL_SIZE;
-    let start = egui::pos2(rect.right() - WIDTH, rect.center().y - size / 2.0);
+    let x = match side {
+        Side::Right => rect.right() - WIDTH,
+        Side::Left => rect.left(),
+    };
+    let start = egui::pos2(x, rect.center().y - size / 2.0);
     let (zoom, zoom_label) = if maximized {
         (Action::Restore, labels.restore)
     } else {
         (Action::Maximize, labels.maximize)
     };
 
-    let mut clicked = None;
-    for (index, (action, label)) in [
+    let mut buttons = [
         (Action::Minimize, labels.minimize),
         (zoom, zoom_label),
         (Action::Close, labels.close),
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    ];
+    if side == Side::Left {
+        buttons.reverse();
+    }
+    let mut clicked = None;
+    for (index, (action, label)) in buttons.into_iter().enumerate() {
         let bounds = Rect::from_min_size(
             start + vec2(index as f32 * (size + space::XS), 0.0),
             vec2(size, size),
@@ -198,6 +233,58 @@ mod tests {
                     (!pressed).then_some(action)
                 );
             }
+        }
+    }
+
+    #[test]
+    fn at_the_left_the_order_is_mirrored_and_close_comes_first() {
+        let size = component::WINDOW_CONTROL_SIZE;
+        for (index, action) in [
+            (0, Action::Close),
+            (1, Action::Maximize),
+            (2, Action::Minimize),
+        ] {
+            let ctx = Context::default();
+            let rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(WIDTH, size));
+            let pos = pos2(size / 2.0 + index as f32 * (size + space::XS), size / 2.0);
+            let run = |events: Vec<Event>| {
+                let mut clicked = None;
+                let mut output = ctx.run_ui(
+                    RawInput {
+                        screen_rect: Some(rect),
+                        events,
+                        ..Default::default()
+                    },
+                    |ui| {
+                        clicked = show_on(
+                            ui,
+                            rect,
+                            Side::Left,
+                            Mode::Light.palette(),
+                            Mode::Light,
+                            true,
+                            false,
+                            Labels {
+                                minimize: "Minimize",
+                                maximize: "Maximize",
+                                restore: "Restore",
+                                close: "Close",
+                            },
+                        );
+                    },
+                );
+                output.textures_delta.clear();
+                clicked
+            };
+            run(vec![Event::PointerMoved(pos)]);
+            let press = |pressed| Event::PointerButton {
+                pos,
+                button: PointerButton::Primary,
+                pressed,
+                modifiers: Modifiers::NONE,
+            };
+            run(vec![press(true)]);
+            assert_eq!(run(vec![press(false)]), Some(action), "button {index}");
         }
     }
 }

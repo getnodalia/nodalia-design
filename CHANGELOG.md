@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
+- `nodalia-theme`: módulo `titlebar`, donde están los botones de ventana y cuánto deja libre la barra superior: izquierda en macOS (los semáforos), derecha en Windows y, en Linux y los BSD, el lado que marque el escritorio (`button-layout` de GNOME, `kwinrc` de KDE, o `NODALIA_WINDOW_BUTTONS=left|right`). `Placement::insets` da el hueco de cada extremo, con la separación hasta el primer control, y `window_controls::show_on` dibuja los botones de Nodalia en el lado pedido (cerrar primero a la izquierda). Especificación en `docs/suites/titlebar.md`.
 - `nodalia-theme`: módulo `about` (feature `creator`), el «Acerca de» común de las apps egui: cabecera con el disco de cerrar de NDL y la página con marca, nombre, versión, descripción, familia, enlaces y licencia. Sin pestañas de Colaboradores ni Modelos. Especificación en `docs/suites/about.md`.
 - `nodalia-update`: `Error::describe(Language)` da el error en español o inglés y dice qué hacer, para que las apps GTK (Brújula, Vinilo) muestren lo mismo que las ventanas de egui en vez del texto técnico en inglés.
 
