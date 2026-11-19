@@ -425,7 +425,11 @@ pub fn volumetric_roles(look: &Look) -> icons::volumetric::Roles {
     };
     let a = color(p.accent_default);
     let mix = |to: u8, t: f32| {
-        let m = |c: u8| (c as f32 + (to as f32 - c as f32) * t).round().clamp(0.0, 255.0) as u8;
+        let m = |c: u8| {
+            (c as f32 + (to as f32 - c as f32) * t)
+                .round()
+                .clamp(0.0, 255.0) as u8
+        };
         egui::Color32::from_rgb(m(a.r()), m(a.g()), m(a.b()))
     };
     base.with_accent(mix(255, 0.62), mix(255, 0.1), mix(0, 0.38))

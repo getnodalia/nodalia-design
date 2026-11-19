@@ -185,7 +185,12 @@ fn dedupe(pts: &[Pos2]) -> Vec<Pos2> {
             out.push(q);
         }
     }
-    while out.len() > 1 && out.first().zip(out.last()).is_some_and(|(a, b)| a.distance(*b) <= 0.02) {
+    while out.len() > 1
+        && out
+            .first()
+            .zip(out.last())
+            .is_some_and(|(a, b)| a.distance(*b) <= 0.02)
+    {
         out.pop();
     }
     out
@@ -309,7 +314,9 @@ mod tests {
         let ctx = egui::Context::default();
         let rect = Rect::from_min_size(pos2(100.0, 100.0), egui::vec2(30.0, 30.0));
         let mut bad = Vec::new();
-        ctx.run_ui(egui::RawInput::default(), |_| {}).textures_delta.clear();
+        ctx.run_ui(egui::RawInput::default(), |_| {})
+            .textures_delta
+            .clear();
         for icon in super::super::all() {
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
                 let painter = ui.painter().clone();
