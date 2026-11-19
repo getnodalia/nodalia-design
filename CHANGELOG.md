@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
+- `nodalia-theme`: `icons::volumetric` dibuja en egui los 350 iconos en volumen de ingeniería (datos generados, rampa de acento de la app, claro y oscuro) y `engineering::{paint_volumetric, ribbon_tool_3d, volumetric_roles}` los llevan a la cinta. Grupos nuevos `drafting` (dibujo 2D, para Forja) y `simulation` (CFD, para Vortia).
 - `nodalia-theme`: módulo `titlebar`, donde están los botones de ventana y cuánto deja libre la barra superior: izquierda en macOS (los semáforos), derecha en Windows y, en Linux y los BSD, el lado que marque el escritorio (`button-layout` de GNOME, `kwinrc` de KDE, o `NODALIA_WINDOW_BUTTONS=left|right`). `Placement::insets` da el hueco de cada extremo, con la separación hasta el primer control, y `window_controls::show_on` dibuja los botones de Nodalia en el lado pedido (cerrar primero a la izquierda). Especificación en `docs/suites/titlebar.md`.
 - `nodalia-theme`: módulo `about` (feature `creator`), el «Acerca de» común de las apps egui: cabecera con el disco de cerrar de NDL y la página con marca, nombre, versión, descripción, familia, enlaces y licencia. Sin pestañas de Colaboradores ni Modelos. Especificación en `docs/suites/about.md`.
 - `nodalia-update`: `Error::describe(Language)` da el error en español o inglés y dice qué hacer, para que las apps GTK (Brújula, Vinilo) muestren lo mismo que las ventanas de egui en vez del texto técnico en inglés.
@@ -13,6 +14,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - `nodalia-update`: buscar actualizaciones ya no falla con «http status: 403» cuando se agota el límite de GitHub de 60 consultas por hora sin cuenta, que comparte toda la red. La lista de versiones se guarda en disco y se pide de nuevo con `If-None-Match` (un `304` no cuenta para el límite); una lista de hace menos de cinco minutos se usa tal cual, así que «Reintentar» no gasta nada; y con el límite agotado, la página `releases/latest` (que no es la API) sigue diciendo si hay versión nueva, que se ofrece con su página. En las ventanas de egui los errores salen en el idioma de la app y dicen qué hacer, con los minutos que faltan si GitHub lo dice.
 
 ### Añadido
+- `nodalia-theme`: `icons::volumetric` dibuja en egui los 350 iconos en volumen de ingeniería (datos generados, rampa de acento de la app, claro y oscuro) y `engineering::{paint_volumetric, ribbon_tool_3d, volumetric_roles}` los llevan a la cinta. Grupos nuevos `drafting` (dibujo 2D, para Forja) y `simulation` (CFD, para Vortia).
 - `nodalia-gtk`: lo que Buzón necesitaba para dejar libadwaita. Widgets nuevos: `Bin`, `WrapBox`, `ButtonContent`, `Carousel` con `CarouselIndicatorDots`, `ExpanderRow`, `NavigationSplitView`, `PreferencesRow` y `WeakTimedAnimation`. `EntryRow` y `PasswordEntryRow` pasan a ser `gtk::Editable` (delegado) con botón de aplicar opcional; `AlertDialog` acepta respuestas desde código; `Clamp` gana `tightening-threshold`; `Avatar` lleva texto, imagen e icono; las condiciones de punto de ruptura se imprimen como se leen y aceptan `sp`. Con la característica `relm4`, los contenedores de NDL se anidan en `view!`. `row_title` encuentra el título de cualquier fila.
 - `tools/app-portrait`: `--mask` traza la figura con un polígono en vez del recorte del modelo, para grabados cuyo fondo rayado el modelo toma por parte de la figura.
 - `@nodalia/icons`: 142 iconos de dibujo vectorial (501 en total), hechos para Pluma y compartidos con todas las apps: herramientas (selección de grupo, punto de ancla, curvatura, tipos de texto, formas, cuchilla, cortes, licuar, anchura, generador de formas, perspectiva, malla, fusión, rociador de símbolos, mesa de trabajo), Buscatrazos completo, degradados, extremos y uniones de trazo, alineación del trazo, alinear y distribuir, reglas de relleno y paneles (muestras, estilos gráficos, apariencia, efectos, acciones).
@@ -47,6 +49,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 Primera versión etiquetada: una app puede fijarla y descargar su paquete desde la release.
 
 ### Añadido
+- `nodalia-theme`: `icons::volumetric` dibuja en egui los 350 iconos en volumen de ingeniería (datos generados, rampa de acento de la app, claro y oscuro) y `engineering::{paint_volumetric, ribbon_tool_3d, volumetric_roles}` los llevan a la cinta. Grupos nuevos `drafting` (dibujo 2D, para Forja) y `simulation` (CFD, para Vortia).
 - `@nodalia/icons`: 55 iconos originales de trazo (rejilla de 24 px, trazo de 1,75 px), como SVG sueltos en `currentColor`, en negro para toolkits que tiñen por opacidad, *sprite* e índice. Nacieron en Vortia 0.5.0.
 - `@nodalia/qtwidgets`: tokens aplanados, plantilla de hoja de estilos y doce hojas rellenas para Qt Widgets. Integrado en Vortia 0.5.0; sin probar en Linux ni Windows.
 - `@nodalia/egui`: genera el crate Rust `nodalia-theme` (tokens como constantes; con la *feature* `egui`, `egui::Style` y `Visuals` para los cuatro modos y las tres densidades). Probado contra egui 0.37; sin verificar visualmente en una app.
@@ -56,6 +59,7 @@ Primera versión etiquetada: una app puede fijarla y descargar su paquete desde 
 Primera versión: infraestructura y conjunto inicial.
 
 ### Añadido
+- `nodalia-theme`: `icons::volumetric` dibuja en egui los 350 iconos en volumen de ingeniería (datos generados, rampa de acento de la app, claro y oscuro) y `engineering::{paint_volumetric, ribbon_tool_3d, volumetric_roles}` los llevan a la cinta. Grupos nuevos `drafting` (dibujo 2D, para Forja) y `simulation` (CFD, para Vortia).
 - `@nodalia/tokens`: 190 tokens DTCG en tres capas; modos claro, oscuro y alto contraste (claro y oscuro); densidades compacta, regular y cómoda; validación de alias, capas y contraste WCAG; generador de CSS.
 - `@nodalia/web`: componentes CSS (botones, campos de texto y numéricos, selector, casilla, opción, interruptor, deslizador, progreso, actividad, etiquetas, tooltip, menú, diálogo, notificación, búsqueda, barra de título, barra lateral, barra de herramientas, pestañas, paneles y separador, inspector, listas, tabla, árbol, estado vacío, barra de estado, área de trabajo, marco de visor) y comportamientos ARIA.
 - `@nodalia/gtk` y `@nodalia/qml`: adaptadores generados desde los tokens.

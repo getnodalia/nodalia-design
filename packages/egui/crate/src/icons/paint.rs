@@ -117,10 +117,10 @@ pub fn paint(p: &Painter, rect: Rect, icon: &Icon, style: Style) -> bool {
 /// One flattened outline on the 24 grid: its points, whether it closes, and the indices of its
 /// corners (where a round cap or join goes; the points between them come from flattened arcs).
 #[derive(Debug, Default, PartialEq)]
-struct Outline {
-    pts: Vec<(f32, f32)>,
-    corners: Vec<usize>,
-    closed: bool,
+pub(super) struct Outline {
+    pub(super) pts: Vec<(f32, f32)>,
+    pub(super) corners: Vec<usize>,
+    pub(super) closed: bool,
 }
 
 /// One element: its outlines and how it is inked.
@@ -132,7 +132,7 @@ struct Element {
     stroke: bool,
     dash: Option<(f32, f32)>,
 }
-type Pt = (f32, f32);
+pub(super) type Pt = (f32, f32);
 
 /// Fill an element's outlines even-odd: an outline inside another is a hole in that one.
 fn fill(
@@ -168,7 +168,7 @@ fn fill(
 /// The filled regions of an element's outlines under the even-odd rule: an outline nested at an
 /// even depth is filled, with the outlines directly inside it bridged in as holes. Each region is
 /// its positively oriented outline, whether it has holes, and its outer outline alone.
-fn regions(outlines: &[Outline]) -> Vec<(Vec<Pt>, bool, &[Pt])> {
+pub(super) fn regions(outlines: &[Outline]) -> Vec<(Vec<Pt>, bool, &[Pt])> {
     let usable: Vec<&[Pt]> = outlines
         .iter()
         .map(|o| o.pts.as_slice())
@@ -222,7 +222,7 @@ fn cross(a: Pt, b: Pt, c: Pt) -> f32 {
 }
 
 /// Whether a positively oriented outline never turns the other way.
-fn convex(pts: &[Pt]) -> bool {
+pub(super) fn convex(pts: &[Pt]) -> bool {
     let n = pts.len();
     (0..n).all(|i| {
         let at = |k: usize| pts.get((i + k) % n).copied().unwrap_or_default();
@@ -263,7 +263,7 @@ fn bridge(poly: &mut Vec<Pt>, hole: &[Pt]) {
 }
 
 /// Ear clipping of a positively oriented simple outline (bridged holes included).
-fn triangulate(pts: &[Pt]) -> Vec<[u32; 3]> {
+pub(super) fn triangulate(pts: &[Pt]) -> Vec<[u32; 3]> {
     let mut idx: Vec<usize> = (0..pts.len()).collect();
     let mut out = Vec::new();
     let pt = |i: usize| pts.get(i).copied().unwrap_or_default();
@@ -450,8 +450,8 @@ fn tokenize(d: &str) -> Option<Vec<Tok>> {
     Some(out)
 }
 
-/// A path's outlines on the 24 grid (the subset NDL's icons use: M L H V C S A Z, either case).
-fn parse_path(d: &str) -> Option<Vec<Outline>> {
+/// A path's outlines on the 24 grid (the subset NDL's icons use: M L H V C S Q A Z, either case).
+pub(super) fn parse_path(d: &str) -> Option<Vec<Outline>> {
     let toks = tokenize(d)?;
     if toks.len() > 4096 {
         return None;
@@ -550,6 +550,20 @@ fn parse_path(d: &str) -> Option<Vec<Outline>> {
                     return None;
                 }
                 continue;
+            }
+            'Q' => {
+                let (x1, y1) = (ox + take(&mut i)?, oy + take(&mut i)?);
+                let (ex, ey) = (ox + take(&mut i)?, oy + take(&mut i)?);
+                for k in 1..=12 {
+                    let t = k as f32 / 12.0;
+                    let u = 1.0 - t;
+                    cur.pts.push((
+                        u * u * x + 2.0 * u * t * x1 + t * t * ex,
+                        u * u * y + 2.0 * u * t * y1 + t * t * ey,
+                    ));
+                }
+                (x, y) = (ex, ey);
+                cur.corners.push(cur.pts.len().saturating_sub(1));
             }
             'Z' => {
                 cur.closed = true;
@@ -757,8 +771,17 @@ mod tests {
         for d in ["M", "M1", "Q1 2 3 4", "M1 2 A", "M1e9999 2", "#"] {
             let _ = parse_path(d);
         }
-        assert!(parse_path("Q1 2 3 4").is_none());
+        assert!(parse_path("T1 2").is_none());
         assert!(parse_element("<ellipse cx=\"1\"/>").is_none());
+    }
+
+    #[test]
+    fn a_quadratic_ends_where_svg_says() {
+        let o = parse_path("M0 0Q5 10 10 0").unwrap_or_default();
+        let pts = &o.first().map(|o| o.pts.clone()).unwrap_or_default();
+        assert_eq!(pts.last(), Some(&(10.0, 0.0)));
+        let max_y = pts.iter().map(|p| p.1).fold(f32::MIN, f32::max);
+        assert!((max_y - 5.0).abs() < 0.1, "{max_y}");
     }
 
     #[test]
