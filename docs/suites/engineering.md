@@ -177,6 +177,14 @@ GNOME. Título en `dialog_title`; cuerpo con la rejilla de propiedades; botones 
 derecha, el principal el último y en acento. Un comando lanzado por programa (MCP, CLI, canal de
 control) nunca abre un diálogo.
 
+## Actualizaciones
+
+La ventana de actualización de las tres apps es la misma: `nodalia_update::egui::Updater` con
+`.with_style(Style::Engineering)` (`docs/integration/updates.md`). Barra de título con la X de
+cierre, «Torno 0.2.0 está disponible» y «Tienes la 0.1.3.» como líneas de informe, las notas en
+un marco hundido, y debajo de una línea los botones, el principal el último y en acento. Por
+dentro cada app actualiza en su sitio y se reinicia, como el resto de Nodalia.
+
 ## Iconos
 
 Iconos CAD en `packages/icons`, grupo `cad`: un mismo concepto es el mismo icono en las tres

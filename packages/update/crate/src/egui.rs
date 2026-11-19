@@ -40,6 +40,19 @@ pub enum Action {
     Exit,
 }
 
+/// How the update window looks.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Style {
+    /// The suite-neutral window: a heading, the body and the buttons.
+    #[default]
+    Standard,
+    /// The engineering suite's window (Torno, Forja, Vortia): a title bar with a close button,
+    /// the version and the one you have as report lines, the release notes in a sunken frame, and
+    /// the buttons under a rule. It draws with the app's own text styles and colours, so the
+    /// suite's typeface and theme (`nodalia_theme::engineering`) carry through.
+    Engineering,
+}
+
 /// Where the flow is.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Status {
@@ -92,6 +105,7 @@ pub struct Updater {
     rx: Receiver<Msg>,
     started: bool,
     accent: Option<egui::Color32>,
+    style: Style,
     /// Where the time of the last automatic check is kept; `None` keeps it nowhere (tests).
     stamp: Option<PathBuf>,
     /// Stands in for GitHub (tests); `None` asks GitHub.
@@ -113,6 +127,7 @@ impl Updater {
             rx,
             started: false,
             accent: None,
+            style: Style::Standard,
             stamp,
             source: None,
             startup_delay: STARTUP_DELAY,
@@ -123,6 +138,12 @@ impl Updater {
     /// Colours the main button in the app's accent instead of the theme's selection colour.
     pub fn with_accent(mut self, rgb: [u8; 3]) -> Self {
         self.accent = Some(egui::Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
+        self
+    }
+
+    /// Draws the window in `style` ([`Style::Engineering`] for the engineering apps).
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.style = style;
         self
     }
 
@@ -375,10 +396,30 @@ impl Updater {
             }
         };
 
+        let engineering = self.style == Style::Engineering;
+        // The engineering window names the window in the bar and says which version is offered
+        // on the first report line; the standard one puts that in the heading.
+        let shown_title = match (&self.status, engineering) {
+            (Status::Offer(_), true) => words.update_available.to_owned(),
+            _ => title.clone(),
+        };
         let modal =
             egui::Modal::new(egui::Id::unique(("nodalia-update", self.app.repo))).show(ctx, |ui| {
                 ui.set_width(WIDTH);
-                ui.heading(&title);
+                if engineering {
+                    // The title bar: the title, and the close button where it closes.
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(&shown_title).strong().size(15.0));
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if closable && ui.small_button("✕").clicked() {
+                                next = Some(Status::Idle);
+                            }
+                        });
+                    });
+                    ui.separator();
+                } else {
+                    ui.heading(&title);
+                }
                 ui.add_space(8.0);
                 match &self.status {
                     Status::Checking { .. } => {
@@ -403,17 +444,43 @@ impl Updater {
                     }
                     Status::Offer(release) => {
                         let blocks = crate::notes_blocks(&release.notes, language);
-                        egui::ScrollArea::vertical()
-                            .max_height(NOTES_HEIGHT)
-                            .auto_shrink([false, true])
-                            .show(ui, |ui| {
-                                if blocks.is_empty() {
-                                    ui.label(words.no_notes);
-                                }
-                                for (i, block) in blocks.iter().enumerate() {
-                                    draw_block(ui, block, i == 0);
-                                }
-                            });
+                        if engineering {
+                            ui.label(words.available_line(self.app.name, &release.version));
+                            ui.label(
+                                egui::RichText::new(words.you_have(self.app.version))
+                                    .small()
+                                    .weak(),
+                            );
+                            ui.add_space(6.0);
+                        }
+                        let notes = |ui: &mut egui::Ui| {
+                            egui::ScrollArea::vertical()
+                                .max_height(NOTES_HEIGHT)
+                                .auto_shrink([false, true])
+                                .show(ui, |ui| {
+                                    if blocks.is_empty() {
+                                        ui.label(words.no_notes);
+                                    }
+                                    for (i, block) in blocks.iter().enumerate() {
+                                        draw_block(ui, block, i == 0);
+                                    }
+                                });
+                        };
+                        if engineering {
+                            // A sunken frame: the notes read as a document inside the card.
+                            let visuals = ui.visuals();
+                            egui::Frame::new()
+                                .fill(visuals.extreme_bg_color)
+                                .stroke(visuals.widgets.noninteractive.bg_stroke)
+                                .corner_radius(6.0)
+                                .inner_margin(8.0)
+                                .show(ui, |ui| {
+                                    ui.set_width(ui.available_width());
+                                    notes(ui);
+                                });
+                        } else {
+                            notes(ui);
+                        }
                         if !in_place {
                             ui.add_space(8.0);
                             ui.label(egui::RichText::new(words.elsewhere(&kind)).weak());
@@ -450,6 +517,9 @@ impl Updater {
                     Status::Idle => {}
                 }
                 ui.add_space(12.0);
+                if engineering {
+                    ui.separator();
+                }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let accent = self.accent;
                     let primary = |ui: &mut egui::Ui, text: &str, enabled: bool| {
@@ -610,6 +680,7 @@ struct Words {
     close: &'static str,
     try_again: &'static str,
     page_only: &'static str,
+    update_available: &'static str,
 }
 
 impl Words {
@@ -636,6 +707,7 @@ impl Words {
                 close: "Cerrar",
                 try_again: "Reintentar",
                 page_only: "GitHub limita las consultas desde tu red durante un rato, así que no se ha podido preparar la instalación automática. Descarga la versión nueva desde su página, o vuelve a buscar más tarde para instalarla desde aquí.",
+                update_available: "Actualización disponible",
             },
             Language::English => Self {
                 spanish: false,
@@ -658,6 +730,7 @@ impl Words {
                 close: "Close",
                 try_again: "Try Again",
                 page_only: "GitHub is limiting requests from your network for a while, so the automatic install could not be prepared. Download the new version from its page, or check again later to install it from here.",
+                update_available: "Update available",
             },
         }
     }
@@ -667,6 +740,22 @@ impl Words {
             format!("{app} {version} está disponible")
         } else {
             format!("{app} {version} Is Available")
+        }
+    }
+
+    fn available_line(&self, app: &str, version: &str) -> String {
+        if self.spanish {
+            format!("{app} {version} está disponible")
+        } else {
+            format!("{app} {version} is available")
+        }
+    }
+
+    fn you_have(&self, version: &str) -> String {
+        if self.spanish {
+            format!("Tienes la {version}.")
+        } else {
+            format!("You have {version}.")
         }
     }
 
@@ -841,6 +930,37 @@ mod tests {
         assert!(updater.is_open());
         frame(&mut updater, &ctx, vec![escape()]);
         assert_eq!(updater.status(), &Status::Idle);
+    }
+
+    #[test]
+    fn the_engineering_offer_has_its_own_bar_and_is_still_modal() {
+        let mut updater = Updater::new(APP)
+            .with_stamp(None)
+            .with_style(Style::Engineering);
+        let ctx = egui::Context::default();
+        updater.offer(release());
+        let mut text = String::new();
+        // An area is sized on its first frame and drawn on the next.
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let _ = updater.show(ui.ctx(), Language::English, true);
+        });
+        output.textures_delta.clear();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let _ = updater.show(ui.ctx(), Language::English, true);
+        });
+        for clipped in &output.shapes {
+            if let egui::epaint::Shape::Text(shape) = &clipped.shape {
+                text.push_str(shape.galley.text());
+                text.push('\n');
+            }
+        }
+        output.textures_delta.clear();
+        assert!(text.contains("Update available"), "{text}");
+        assert!(text.contains("Prueba 2.0.0 is available"), "{text}");
+        assert!(text.contains("You have 1.0.0."), "{text}");
+        assert!(updater.is_open());
+        frame(&mut updater, &ctx, vec![escape()]);
+        assert_eq!(updater.status(), &Status::Idle, "Escape closes it too");
     }
 
     #[test]
