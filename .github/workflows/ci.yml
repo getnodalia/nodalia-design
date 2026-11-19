@@ -54,13 +54,13 @@ jobs:
 
   update-crate:
     # The in-app updater every Nodalia app ships. Each system runs its own install path for
-    # real: macOS mounts an ad-hoc signed disk image and runs the helper, Windows runs the MSI
-    # helper with a stand-in msiexec, Linux swaps an AppImage. A break here breaks every app.
+    # real: Windows runs the MSI helper with a stand-in msiexec, Linux swaps an AppImage. macOS
+    # is not here: the org's macOS slots are kept for releases. A break here breaks every app.
     name: Rust crate nodalia-update (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     defaults:
