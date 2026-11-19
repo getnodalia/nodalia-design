@@ -82,6 +82,7 @@ match updater.show(ctx, nodalia_update::Language::from_code(idioma), seguro_cerr
 }
 ```
 
+- Las apps de ingeniería (Torno, Forja, Vortia) piden la ventana de su suite con `.with_style(nodalia_update::egui::Style::Engineering)`: barra de título con botón de cierre, la versión y la que tienes como líneas de informe, las notas en un marco hundido y los botones bajo una línea. El flujo no cambia, solo cómo se dibuja; usa los estilos de texto y los colores de la app, así que la tipografía y el tema de `nodalia_theme::engineering` se heredan.
 - La comprobación al arrancar espera 20 segundos, se hace como mucho una vez al día y solo donde la app puede sustituirse; si no encuentra nada, o falla, no dice nada.
 - `seguro_cerrar` es si la app puede salir sin perder nada (trabajo sin guardar, diálogos, tareas). Mientras sea `false`, la versión descargada espera y la ventana explica por qué.
 - `is_open()` dice si hay una ventana abierta: son modales, así que las teclas no deben llegar al documento de detrás.
