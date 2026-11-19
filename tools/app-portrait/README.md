@@ -24,6 +24,8 @@ python3 tools/app-portrait/portrait.py RETRATO SALIDA.png --box L,T,R,B --colors
 - `--mask X,Y,X,Y,...`: un polígono, en píxeles del original, que es la figura entera en lugar
   del recorte del modelo. Sirve para grabados, cuyo fondo rayado el modelo toma por parte de la
   figura.
+- `--sub-mask X,Y,X,Y,...`: un polígono, en píxeles del original, que se resta a la figura cuando el
+  modelo se queda con algo pegado a ella (un muñeco, un marco). Ánima lo usa con la foto de 1921.
 - `--model`: el modelo de rembg; `u2net_human_seg` (el de por defecto) es el que mejor separa
   retratos.
 

@@ -4,7 +4,7 @@ app's colour field, full bleed, 1024 px (see README.md).
 
 Usage:
   portrait.py SOURCE OUT.png --box L,T,R,B --colors TOP BOTTOM [--gamma G]
-              [--model NAME] [--add-mask X,Y,X,Y,...] [--mask X,Y,X,Y,...]
+              [--model NAME] [--add-mask X,Y,X,Y,...] [--sub-mask X,Y,X,Y,...] [--mask X,Y,X,Y,...]
 
 SOURCE is the portrait as downloaded (any size); the figure is found on the whole image, then
 the square BOX (pixels of SOURCE; it may reach past the edges) is what fills the tile. Needs
@@ -27,7 +27,7 @@ def rgb(hex_colour):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
-def cut_out(image, model, extra):
+def cut_out(image, model, extra, removed=None):
     # Matting keeps hair and fabric edges soft instead of stair-stepped.
     cut = remove(image, session=new_session(model), alpha_matting=True,
                  alpha_matting_foreground_threshold=240, alpha_matting_background_threshold=15,
@@ -38,6 +38,12 @@ def cut_out(image, model, extra):
         mask = Image.new('L', cut.size, 0)
         ImageDraw.Draw(mask).polygon(list(zip(extra[::2], extra[1::2])), fill=255)
         cut.putalpha(ImageChops.lighter(cut.getchannel('A'), mask.filter(ImageFilter.GaussianBlur(3))))
+    if removed:
+        # Something beside the figure the model keeps (a doll, a frame): a polygon (pixels of
+        # SOURCE) takes it away.
+        gone = Image.new('L', cut.size, 0)
+        ImageDraw.Draw(gone).polygon(list(zip(removed[::2], removed[1::2])), fill=255)
+        cut.putalpha(ImageChops.subtract(cut.getchannel('A'), gone.filter(ImageFilter.GaussianBlur(2))))
     return cut
 
 
@@ -77,6 +83,7 @@ def main():
     parser.add_argument('--gamma', type=float, default=1.0, help='above 1 darkens the midtones')
     parser.add_argument('--model', default='u2net_human_seg')
     parser.add_argument('--add-mask', type=numbers, default=None, help='X,Y,X,Y,...: polygon added to the figure')
+    parser.add_argument('--sub-mask', type=numbers, default=None, help='X,Y,X,Y,...: polygon removed from the figure')
     parser.add_argument('--mask', type=numbers, default=None,
                         help='X,Y,X,Y,...: the figure is this polygon, without the model (engravings)')
     args = parser.parse_args()
@@ -85,7 +92,7 @@ def main():
     if args.mask:
         cut = traced(source, args.mask)
     else:
-        cut = cut_out(source, args.model, args.add_mask)
+        cut = cut_out(source, args.model, args.add_mask, args.sub_mask)
     cut = cut.crop(tuple(args.box)).resize((SIZE, SIZE), Image.LANCZOS)
     alpha = cut.getchannel('A').filter(ImageFilter.GaussianBlur(1.2))
 
