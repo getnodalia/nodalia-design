@@ -5,7 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
-- `nodalia-theme`: módulo `about` (feature `creator`), el «Acerca de» común de las apps egui: cabecera con el disco de cerrar de NDL, pestañas, y la página con marca, nombre, versión, descripción, familia, enlaces y licencia. Especificación en `docs/suites/about.md`.
+- `nodalia-theme`: módulo `about` (feature `creator`), el «Acerca de» común de las apps egui: cabecera con el disco de cerrar de NDL y la página con marca, nombre, versión, descripción, familia, enlaces y licencia. Sin pestañas de Colaboradores ni Modelos. Especificación en `docs/suites/about.md`.
 - `nodalia-update`: `Error::describe(Language)` da el error en español o inglés y dice qué hacer, para que las apps GTK (Brújula, Vinilo) muestren lo mismo que las ventanas de egui en vez del texto técnico en inglés.
 
 ### Corregido

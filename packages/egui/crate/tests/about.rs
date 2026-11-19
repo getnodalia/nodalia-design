@@ -50,9 +50,6 @@ fn the_window_draws_in_both_modes_and_nothing_is_clicked_untouched() {
         run(|ui| {
             ui.set_width(measures::WIDTH);
             assert!(!about::heading(ui, &look, "About Pulso", egui::Id::NULL.with("x")).closed);
-            let tabs = about::tabs(ui, &look, &["About", "Contributors"], 1);
-            assert_eq!(tabs.selected, 1);
-            assert_eq!(tabs.rects.len(), 2);
             let mut mark = None;
             let page = about::page(ui, &look, &info(), |_, rect| mark = Some(rect));
             assert_eq!(page.picked, None);
@@ -110,4 +107,37 @@ fn an_empty_footer_and_no_links_still_draw() {
         assert_eq!(page.picked, None);
         assert!(page.links.is_empty());
     });
+}
+
+#[test]
+fn the_painted_texts_are_labelled_for_screen_readers() {
+    let look = look(Mode::Light);
+    let ctx = egui::Context::default();
+    ctx.enable_accesskit();
+    let mut labels = Vec::new();
+    for _ in 0..2 {
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            ui.set_width(measures::WIDTH);
+            about::page(ui, &look, &info(), |_, _| {});
+        });
+        out.textures_delta.clear();
+        if let Some(update) = out.platform_output.accesskit_update {
+            labels = update
+                .nodes
+                .iter()
+                .filter_map(|(_, node)| node.value().or(node.label()).map(str::to_owned))
+                .collect();
+        }
+    }
+    for text in [
+        "Pulso",
+        "Version 0.1.1",
+        "Part of Nodalia · Creator",
+        "MIT OR Apache-2.0",
+    ] {
+        assert!(
+            labels.iter().any(|l| l == text),
+            "{text:?} is not in {labels:?}"
+        );
+    }
 }
