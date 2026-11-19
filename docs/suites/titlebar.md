@@ -36,6 +36,5 @@ de `kwinrc` (`ButtonsOnLeft`, `ButtonsOnRight`), y vale la derecha si no se pued
 - El menú de hamburguesa, o el primer control de la barra, empieza donde empieza `content_rect`.
   Nunca se suma un relleno propio para esquivar los semáforos.
 - Lo que va al final de la barra (compartir, buscar) acaba donde acaba `content_rect`.
-- El hueco del lado de los botones se reserva aunque la ventana esté maximizada o a pantalla
-  completa solo si los botones siguen visibles; en pantalla completa de macOS desaparecen y el
-  hueco vale 0.
+- En la pantalla completa de macOS los semáforos desaparecen: la app pasa `lights_in_content =
+  false` mientras dura, y el menú ocupa el borde.
