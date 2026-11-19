@@ -59,16 +59,14 @@ export default {
   "cfd_numerics": () => {
     const s = sc({ cy: 36 });
     s.box([-16, -16, -9], [16, 16, -6]);
-    for (const [i, x] of [-14.5, -4, 6.5].entries()) for (const [j, y] of [-14.5, -4, 6.5].entries()) s.box([x, y, -6], [x + 8, y + 8, i === j ? 2 : -2], { kind: i === j ? A : "face" });
+    for (const [i, x] of [-13, 1].entries()) for (const [j, y] of [-13, 1].entries()) s.box([x, y, -6], [x + 12, y + 12, i === j ? 3 : -1], { kind: i === j ? A : "face" });
     return s;
   },
   "cfd_schemes": () => {
     const s = sc({ cy: 36 });
-    s.box([-15, -5, -8], [-5, 5, 0]);
-    s.box([5, -5, -8], [15, 5, 0]);
-    s.box([-5, -15, -8], [5, -5, 0]);
-    s.box([-5, 5, -8], [5, 15, 0]);
-    return s.box([-5, -5, -8], [5, 5, 3], { kind: A });
+    s.box([-17, -6, -8], [-6, 6, 0]);
+    s.box([6, -6, -8], [17, 6, 0]);
+    return s.box([-6, -6, -8], [6, 6, 4], { kind: A });
   },
   "cfd_probe": () => {
     const s = sc({ cy: 36 });

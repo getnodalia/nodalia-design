@@ -156,7 +156,7 @@ fn fill(
     for region in &shape.regions {
         let screen: Vec<Pos2> = region.poly.iter().copied().map(at).collect();
         let Some(triangles) = &region.triangles else {
-            p.add(Shape::convex_polygon(screen, color, Stroke::NONE));
+            p.add(fan(&dedupe(&screen), color));
             continue;
         };
         let mut mesh = Mesh::default();
@@ -170,12 +170,79 @@ fn fill(
         if part.stroke.is_none() {
             // Without a stroke over it, a triangulated fill's edge needs a hairline to be smooth.
             let edge: Vec<Pos2> = region.outer.iter().copied().map(at).collect();
-            p.add(Shape::closed_line(
-                edge,
-                Stroke::new(0.5 * s.max(1.0), color),
-            ));
+            let width = 0.5 * s.max(1.0);
+            polyline(p, &dedupe(&edge), true, Stroke::new(width, color));
         }
     }
+}
+
+/// The points without repeats: a zero-length edge has no direction, and egui's anti-aliasing
+/// stretches it into a spike across the screen.
+fn dedupe(pts: &[Pos2]) -> Vec<Pos2> {
+    let mut out: Vec<Pos2> = Vec::with_capacity(pts.len());
+    for &q in pts {
+        if out.last().is_none_or(|l| l.distance(q) > 0.02) {
+            out.push(q);
+        }
+    }
+    while out.len() > 1 && out.first().zip(out.last()).is_some_and(|(a, b)| a.distance(*b) <= 0.02) {
+        out.pop();
+    }
+    out
+}
+
+/// A convex polygon as a triangle fan. Not `Shape::convex_polygon`: its anti-aliasing extrudes
+/// every corner along the bisector, so the thin acute slivers these icons are made of grow spikes.
+fn fan(pts: &[Pos2], color: Color32) -> Shape {
+    let mut mesh = Mesh::default();
+    for &v in pts {
+        mesh.colored_vertex(v, color);
+    }
+    for i in 1..pts.len().saturating_sub(1) {
+        if let (Ok(b), Ok(c)) = (u32::try_from(i), u32::try_from(i + 1)) {
+            mesh.add_triangle(0, b, c);
+        }
+    }
+    Shape::mesh(mesh)
+}
+
+/// A stroked polyline, cut at sharp turns and joined with discs.
+fn polyline(p: &Painter, pts: &[Pos2], closed: bool, stroke: Stroke) {
+    let mut line = pts.to_vec();
+    if closed {
+        line.extend(line.first().copied());
+    }
+    for (k, piece) in split_at_sharp_turns(&line).into_iter().enumerate() {
+        if let Some(&joint) = piece.first().filter(|_| k > 0 || closed) {
+            p.circle_filled(joint, stroke.width / 2.0, stroke.color);
+        }
+        p.add(Shape::line(piece, stroke));
+    }
+}
+
+/// The polyline cut into pieces at every sharp turn: egui extrudes a stroke's corner along the
+/// bisector without a limit, so a near-reversal (the cusp where a cylinder's silhouette meets its
+/// rim) shoots a spike across the screen. The cut corners are covered by the round joins.
+fn split_at_sharp_turns(pts: &[Pos2]) -> Vec<Vec<Pos2>> {
+    let mut pieces = Vec::new();
+    let mut piece: Vec<Pos2> = Vec::new();
+    for (i, &q) in pts.iter().enumerate() {
+        piece.push(q);
+        let sharp = match (i.checked_sub(1).and_then(|k| pts.get(k)), pts.get(i + 1)) {
+            (Some(&a), Some(&c)) => {
+                let (u, v) = (q - a, c - q);
+                u.dot(v) < -0.25 * u.length() * v.length()
+            }
+            _ => false,
+        };
+        if sharp && piece.len() >= 2 {
+            pieces.push(std::mem::replace(&mut piece, vec![q]));
+        }
+    }
+    if piece.len() >= 2 {
+        pieces.push(piece);
+    }
+    pieces
 }
 
 fn stroke(
@@ -190,19 +257,16 @@ fn stroke(
     let stroke = Stroke::new(w, color);
     for o in &shape.outlines {
         let pts: Vec<Pos2> = o.pts.iter().copied().map(at).collect();
+        let line_pts = dedupe(&pts);
         if let Some((dash, gap)) = part.dash {
-            let mut line = pts.clone();
+            let mut line = line_pts.clone();
             if o.closed {
-                line.extend(pts.first().copied());
+                line.extend(line_pts.first().copied());
             }
             p.extend(Shape::dashed_line(&line, stroke, dash * s, gap * s));
             continue;
         }
-        if o.closed {
-            p.add(Shape::closed_line(pts.clone(), stroke));
-        } else {
-            p.add(Shape::line(pts.clone(), stroke));
-        }
+        polyline(p, &line_pts, o.closed, stroke);
         // Round caps and joins: a disc of the stroke's width on every corner.
         for &i in &o.corners {
             if let Some(&c) = pts.get(i) {
@@ -221,6 +285,49 @@ mod tests {
         for icon in super::super::all() {
             assert!(shapes(icon).is_some(), "{}", icon.name);
         }
+    }
+
+    #[test]
+    fn no_flattened_point_leaves_the_icon_box() {
+        for icon in super::super::all() {
+            for shape in shapes(icon).expect("flattens").iter() {
+                for outline in &shape.outlines {
+                    for &(x, y) in &outline.pts {
+                        assert!(
+                            (-8.0..=BOX + 8.0).contains(&x) && (-8.0..=BOX + 8.0).contains(&y),
+                            "{} has a point at {x},{y}",
+                            icon.name
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tessellated_icons_stay_inside_their_square() {
+        let ctx = egui::Context::default();
+        let rect = Rect::from_min_size(pos2(100.0, 100.0), egui::vec2(30.0, 30.0));
+        let mut bad = Vec::new();
+        ctx.run_ui(egui::RawInput::default(), |_| {}).textures_delta.clear();
+        for icon in super::super::all() {
+            let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+                let painter = ui.painter().clone();
+                assert!(paint(&painter, rect, icon, &Roles::dark()));
+            });
+            out.textures_delta.clear();
+            let prims = ctx.tessellate(out.shapes, 1.0);
+            let wide = rect.expand(6.0);
+            for prim in prims {
+                if let egui::epaint::Primitive::Mesh(mesh) = prim.primitive {
+                    if mesh.vertices.iter().any(|v| !wide.contains(v.pos)) {
+                        bad.push(icon.name);
+                        break;
+                    }
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{bad:?}");
     }
 
     #[test]
