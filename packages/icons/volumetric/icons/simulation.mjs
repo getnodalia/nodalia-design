@@ -100,6 +100,32 @@ export default {
     s.plane([[0, -19, -13], [0, 19, -13], [0, 19, 9], [0, -19, 9]], { role: "accent-1", stroke: "ink", width: 2, layer: "over" });
     return s;
   },
+  "cfd_sample_line": () => {
+    const s = sc({ cy: 36 });
+    s.box([-16, -14, -9], [16, 14, -3]);
+    s.line([[-13, -10, -3], [13, 10, -3]], { role: "accent-3", width: 2.6 });
+    s.dot([-13, -10, -3], { r: 3, role: "accent-2", ring: "ink" });
+    return s.dot([13, 10, -3], { r: 3, role: "accent-2", ring: "ink" });
+  },
+  "cfd_wall": () => {
+    const s = sc({ cy: 36 });
+    s.box([-17, -11, -8], [17, 11, 4], { kind: "face" });
+    s.box([-17, -11, -8], [17, -7, 4], { kind: A });
+    s.box([-17, 7, -8], [17, 11, 4], { kind: A });
+    return stream(s, 0, 4, { amp: 2.2 });
+  },
+  "cfd_geometry": () => {
+    const s = sc({ cy: 36 });
+    s.box([-14, -14, -10], [14, 14, 2]);
+    s.turned({ at: [0, 0, 2], r0: 8, r1: 8, h0: 0, h1: 9, kind: A });
+    return s;
+  },
+  "cfd_report": () => {
+    const s = sc({ cy: 36 });
+    s.box([-14, -16, -9], [14, 16, -5]);
+    for (const [y, role] of [[-9, "accent-1"], [-1, "accent-2"], [7, "accent-3"]]) s.line([[-10, y, -5], [10 - (y + 9) * 0.5, y, -5]], { role, width: 3 });
+    return s;
+  },
   "close_case": () => {
     const s = sc({ cy: 36 });
     s.box([-14, -14, -10], [14, 14, -7], { kind: "face" });
