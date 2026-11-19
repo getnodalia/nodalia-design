@@ -116,13 +116,19 @@ impl Placement {
         )
     }
 
-    /// Where Nodalia draws its three buttons inside `bar`, for [`crate::window_controls::show_on`].
-    /// It is the strip at the bar's edge, without the gap to the content.
+    /// Where Nodalia draws its three buttons inside `bar`, for [`crate::window_controls::show_on`]:
+    /// the buttons' own rectangle, [`EDGE_GAP`] in from the window's edge on the placement's side.
     pub fn controls_rect(&self, bar: Rect) -> Rect {
-        let width = crate::window_controls::WIDTH + EDGE_GAP;
+        let width = crate::window_controls::WIDTH;
         match self.side {
-            Side::Left => Rect::from_min_max(bar.min, pos2(bar.left() + width, bar.bottom())),
-            Side::Right => Rect::from_min_max(pos2(bar.right() - width, bar.top()), bar.max),
+            Side::Left => Rect::from_min_max(
+                pos2(bar.left() + EDGE_GAP, bar.top()),
+                pos2(bar.left() + EDGE_GAP + width, bar.bottom()),
+            ),
+            Side::Right => Rect::from_min_max(
+                pos2(bar.right() - EDGE_GAP - width, bar.top()),
+                pos2(bar.right() - EDGE_GAP, bar.bottom()),
+            ),
         }
     }
 }
