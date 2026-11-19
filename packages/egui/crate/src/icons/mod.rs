@@ -16,6 +16,7 @@ mod data;
 
 #[cfg(feature = "egui")]
 mod paint;
+pub mod volumetric;
 #[cfg(feature = "egui")]
 pub use paint::{paint, Style};
 

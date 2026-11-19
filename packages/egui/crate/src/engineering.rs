@@ -412,6 +412,66 @@ pub fn ribbon_tool(ui: &mut Ui, look: &Look, icon: &str, text: &str, active: boo
     resp
 }
 
+/// The volumetric icon colours for this look: NDL's display colours for a light or dark
+/// interface with the accent ramp taken from the app's accent (light fill, mid, dark line).
+pub fn volumetric_roles(look: &Look) -> icons::volumetric::Roles {
+    let p = &look.palette;
+    let w = p.surface_window;
+    let dark = (w.r as u32 * 299 + w.g as u32 * 587 + w.b as u32 * 114) / 1000 < 128;
+    let base = if dark {
+        icons::volumetric::Roles::dark()
+    } else {
+        icons::volumetric::Roles::light()
+    };
+    let a = color(p.accent_default);
+    let mix = |to: u8, t: f32| {
+        let m = |c: u8| (c as f32 + (to as f32 - c as f32) * t).round().clamp(0.0, 255.0) as u8;
+        egui::Color32::from_rgb(m(a.r()), m(a.g()), m(a.b()))
+    };
+    base.with_accent(mix(255, 0.62), mix(255, 0.1), mix(0, 0.38))
+}
+
+/// Paints the volumetric icon `name` into `rect` with this look's colours. False when there is
+/// no such icon.
+pub fn paint_volumetric(painter: &egui::Painter, rect: Rect, look: &Look, name: &str) -> bool {
+    match icons::volumetric::get(name) {
+        Some(icon) => icons::volumetric::paint(painter, rect, icon, &volumetric_roles(look)),
+        None => false,
+    }
+}
+
+/// A ribbon tool with a 30 pt volumetric icon over a one-line label. Falls back to the flat
+/// icon of the same name when there is no volumetric one.
+pub fn ribbon_tool_3d(ui: &mut Ui, look: &Look, icon: &str, text: &str, active: bool) -> Response {
+    let p = &look.palette;
+    let (rect, resp) = ui.allocate_exact_size(layout::TOOL, Sense::click());
+    resp.widget_info(|| WidgetInfo::selected(Role::Button, true, active, text));
+    let painter = ui.painter();
+    if active {
+        painter.rect_filled(rect, layout::ROW_RADIUS, color(p.accent_subtle));
+    } else if resp.hovered() {
+        painter.rect_filled(rect, layout::ROW_RADIUS, color(p.control_bg_hover));
+    }
+    let r = Rect::from_center_size(pos2(rect.center().x, rect.top() + 17.0), vec2(30.0, 30.0));
+    if !paint_volumetric(painter, r, look, icon) {
+        if let Some(glyph) = icons::get(icon) {
+            let style = icons::Style {
+                accent: Some(color(p.accent_default)),
+                ..icons::Style::regular(color(p.text_primary))
+            };
+            icons::paint(painter, r.shrink(4.0), glyph, style);
+        }
+    }
+    painter.text(
+        pos2(rect.center().x, rect.bottom() - 7.0),
+        Align2::CENTER_CENTER,
+        text,
+        FontId::new(size::CAPTION + 0.5, FontFamily::Proportional),
+        color(p.text_primary),
+    );
+    resp
+}
+
 /// A ribbon group: its tools in a row with the group's name under them as a caption, and a thin
 /// divider after it. Returns what `tools` returned.
 pub fn ribbon_group<R>(

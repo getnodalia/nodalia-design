@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MODES, SOURCE_DIR, loadTokens, rawValue, resolve, parseHex } from '@nodalia/tokens/lib';
-import { ICONS_OUTPUT, OUTPUT, iconsSource, rustSource } from '../scripts/build.mjs';
+import { ICONS_OUTPUT, OUTPUT, VOLUMETRIC_OUTPUT, iconsSource, rustSource, volumetricSource } from '../scripts/build.mjs';
 
 const tokens = loadTokens(SOURCE_DIR);
 const src = rustSource();
@@ -53,6 +53,15 @@ test('the committed icons/data.rs matches the icon set (run `npm run build -w @n
   const names = [...iconsSource().matchAll(/^ {8}name: "([a-z-]+)",$/gm)].map((m) => m[1]);
   assert.deepEqual(names, [...names].sort());
   assert.ok(names.includes('line') && names.includes('dim-continue'));
+});
+
+test('the committed icons/volumetric/data.rs matches the volumetric set (run `npm run build -w @nodalia/egui`)', async () => {
+  const source = await volumetricSource();
+  assert.equal(readFileSync(VOLUMETRIC_OUTPUT, 'utf8'), source);
+  const names = [...source.matchAll(/^ {8}name: "([a-z0-9-]+)",$/gm)].map((m) => m[1]);
+  assert.deepEqual(names, [...names].sort());
+  assert.ok(names.includes('trim') && names.includes('extrude'));
+  assert.ok(!/undefined|NaN/.test(source));
 });
 
 test('window-control colours preserve shared semantic aliases', () => {
