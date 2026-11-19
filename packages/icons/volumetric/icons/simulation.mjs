@@ -102,6 +102,14 @@ export default {
     s.plane([[0, -19, -13], [0, 19, -13], [0, 19, 9], [0, -19, 9]], { role: "accent-1", stroke: "ink", width: 2, layer: "over" });
     return s;
   },
+  "close_case": () => {
+    const s = sc({ cy: 36 });
+    s.box([-14, -14, -10], [14, 14, -7], { kind: "face" });
+    s.box([-14, -14, -7], [14, -11, 8]);
+    s.box([-14, -11, -7], [-11, 14, 8]);
+    s.box([-14, -14, 8], [-11, -2, 11]);
+    return badge(s, "cross");
+  },
   "pause": () => sc({ cy: 34 })
     .box([-12, -10, -4], [-2, 10, 4], { kind: A })
     .box([3, -10, -4], [13, 10, 4], { kind: A }),
