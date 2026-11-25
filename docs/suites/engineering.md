@@ -135,6 +135,31 @@ operaciones; Forja: pestañas Modelo/Presentación; Vortia: estado del cálculo 
 derecha coordenadas y unidades en Plex Mono y los conmutadores de ayudas (rejilla, forzado,
 ortogonal…).
 
+## Menús, desplegables y submenús
+
+Todo lo que se abre desde un botón (el menú Archivo y el de la app en la barra de título, la
+flecha de un grupo del ribbon, el selector de espacio de trabajo, el menú contextual, la lista de
+documentos recientes) es el mismo objeto en las tres apps: una superficie flotante y filas.
+Implementación: `engineering::menu`.
+
+- **Superficie** (`menu::popup`, `menu::surface`): color de superficie superpuesta, línea de 1 pt
+  en `border_subtle`, radio 12 (el de una isla), margen interior de 6 y la sombra de elevación
+  superpuesta. Sin degradados ni brillos. Ancho mínimo 208.
+- **Fila** (`menu::item`): 28 de alto, radio 7, texto en `body` (Plex Sans 12,5). Columna inicial de
+  20 para un icono NDL de 16 o una marca de verificación (`checked`: marca en el acento, vacía si no
+  está activo); un menú en el que alguna fila tiene icono reserva la columna en todas (`gutter`).
+  A la derecha, el atajo en Plex Mono (`value_font`) en texto terciario, o la flecha del submenú.
+  Con el puntero o el foco la fila toma el tinte suave del acento y el texto pasa al color de acento
+  (como la fila seleccionada del navegador). Desactivada: `text_disabled`, sin tinte. Destructiva
+  (`danger`): color de peligro.
+- **Submenú** (`menu::submenu`): una fila con flecha que abre su contenido a la derecha, a 4 de
+  distancia; se abre con el puntero, con clic o con la flecha derecha, y hereda la misma superficie.
+- **Separador** (`menu::separator`): línea fina que deja 4 por encima y por debajo. **Encabezado**
+  (`menu::heading`): nombre de sección en `caption` semibold y texto terciario (el nombre de un
+  grupo del ribbon, «Recientes»).
+- Los atajos se escriben como los muestra la plataforma (`Ctrl+O`, `⌘O`). Sin información sobre
+  herramientas repetida: la fila ya dice lo que hace.
+
 ## Inicio
 
 Inicio es la vista de Archivo de la suite de oficina (`office::file_view`) dibujada con la tipografía

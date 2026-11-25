@@ -21,6 +21,8 @@
 //! # }
 //! ```
 
+pub mod menu;
+
 use std::sync::Arc;
 
 use egui::{
