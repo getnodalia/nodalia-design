@@ -26,13 +26,23 @@ pub fn preferences(ui: &mut Ui, look: &Look, a: &mut Assistant) {
             }
             row(ui, look, lang.t("Ask before changing the document"), |ui| {
                 let mut ask = a.settings.approval == Approval::Ask;
-                if ui.checkbox(&mut ask, "").changed() {
+                let check = ui.checkbox(&mut ask, "");
+                let name = lang.t("Ask before changing the document");
+                check.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::CheckBox, true, ask, name)
+                });
+                if check.changed() {
                     a.settings.approval = if ask { Approval::Ask } else { Approval::Auto };
                     a.save();
                 }
             });
             row(ui, look, lang.t("Show the assistant button"), |ui| {
-                if ui.checkbox(&mut a.settings.enabled, "").changed() {
+                let check = ui.checkbox(&mut a.settings.enabled, "");
+                let name = lang.t("Show the assistant button");
+                check.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::CheckBox, true, a.settings.enabled, name)
+                });
+                if check.changed() {
                     a.save();
                 }
             });
@@ -85,7 +95,8 @@ fn provider_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
     row(ui, look, lang.t("Provider"), |ui| {
         let mut chosen = None;
-        egui::ComboBox::from_id_salt("ndl_assistant_provider")
+        let name = lang.t("Provider");
+        let combo = egui::ComboBox::from_id_salt("ndl_assistant_provider")
             .selected_text(a.settings.provider.name())
             .show_ui(ui, |ui| {
                 for p in Provider::ALL {
@@ -97,6 +108,9 @@ fn provider_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
                     }
                 }
             });
+        combo
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
         if let Some(p) = chosen {
             a.set_provider(p);
         }
@@ -133,16 +147,21 @@ fn model_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
                     current.clone()
                 };
                 let mut chosen = None;
-                egui::ComboBox::from_id_salt(("ndl_assistant_model_list", provider.id()))
-                    .selected_text(shown)
-                    .width(CONTROL_WIDTH)
-                    .show_ui(ui, |ui| {
-                        for m in &options {
-                            if ui.selectable_label(*m == current, m).clicked() {
-                                chosen = Some(m.clone());
+                let name = lang.t("Model");
+                let combo =
+                    egui::ComboBox::from_id_salt(("ndl_assistant_model_list", provider.id()))
+                        .selected_text(shown)
+                        .width(CONTROL_WIDTH)
+                        .show_ui(ui, |ui| {
+                            for m in &options {
+                                if ui.selectable_label(*m == current, m).clicked() {
+                                    chosen = Some(m.clone());
+                                }
                             }
-                        }
-                    });
+                        });
+                combo
+                    .response
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
                 if let Some(m) = chosen {
                     a.settings.set_model(&m);
                     a.save();
