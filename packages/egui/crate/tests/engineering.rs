@@ -107,6 +107,11 @@ fn the_parts_draw_and_the_text_styles_follow_the_scale() {
         style.text_styles[&egui::TextStyle::Monospace],
         eng::value_font()
     );
+    assert_eq!(
+        style.visuals.menu_corner_radius,
+        egui::CornerRadius::same(eng::menu::metric::RADIUS),
+        "a combo box's list gets the suite's menu surface too"
+    );
 }
 
 #[test]
@@ -411,4 +416,83 @@ fn a_long_card_name_wraps_and_a_long_detail_ends_inside_the_card() {
         name.1.top() >= card.top() + 54.0,
         "the name clears the icon badge"
     );
+}
+
+mod menu {
+    use super::*;
+    use egui::{pos2, Event, Modifiers, PointerButton, RawInput};
+    use nodalia_theme::engineering::menu;
+
+    fn frame(ctx: &egui::Context, events: Vec<Event>, ui_fn: impl FnMut(&mut egui::Ui)) {
+        let mut ui_fn = ui_fn;
+        let input = RawInput {
+            events,
+            screen_rect: Some(egui::Rect::from_min_size(
+                pos2(0.0, 0.0),
+                egui::vec2(600.0, 400.0),
+            )),
+            ..RawInput::default()
+        };
+        let mut out = ctx.run_ui(input, |ui| ui_fn(ui));
+        out.textures_delta.clear();
+    }
+
+    #[test]
+    fn rows_are_menu_rows_and_only_enabled_ones_are_clicked() {
+        let ctx = egui::Context::default();
+        eng::install_fonts(&ctx);
+        let look = Look::new(Mode::Dark.palette_with(Accent::Forja));
+        let rects = std::cell::RefCell::new(Vec::new());
+        let draw = |ui: &mut egui::Ui| {
+            let mut got = rects.borrow_mut();
+            got.clear();
+            let on = menu::item(
+                ui,
+                &look,
+                &menu::Item::new("Open…").icon("folder").shortcut("Ctrl+O"),
+            );
+            let off = menu::item(ui, &look, &menu::Item::new("Export").enabled(false));
+            got.push((on.rect, on.clicked()));
+            got.push((off.rect, off.clicked()));
+        };
+        frame(&ctx, vec![], draw);
+        let (on, off) = {
+            let r = rects.borrow();
+            (r[0].0, r[1].0)
+        };
+        assert_eq!(on.height(), menu::metric::ROW);
+        assert!(on.width() >= menu::metric::MIN_WIDTH - 2.0 * f32::from(menu::metric::MARGIN));
+        let click = |at: egui::Pos2| {
+            let button = |pressed| Event::PointerButton {
+                pos: at,
+                button: PointerButton::Primary,
+                pressed,
+                modifiers: Modifiers::NONE,
+            };
+            vec![Event::PointerMoved(at), button(true), button(false)]
+        };
+        frame(&ctx, click(on.center()), draw);
+        assert!(rects.borrow()[0].1, "the enabled row was clicked");
+        frame(&ctx, click(off.center()), draw);
+        assert!(!rects.borrow()[1].1, "a disabled row never is");
+    }
+
+    #[test]
+    fn a_menu_with_a_submenu_a_check_a_heading_and_a_separator_draws() {
+        let ctx = egui::Context::default();
+        eng::install_fonts(&ctx);
+        let look = Look::new(Mode::Light.palette_with(Accent::Vortia));
+        for _ in 0..3 {
+            frame(&ctx, vec![], |ui| {
+                menu::surface(&look).show(ui, |ui| {
+                    menu::heading(ui, &look, "Document");
+                    menu::item(ui, &look, &menu::Item::new("Show grid").checked(true));
+                    menu::separator(ui, &look);
+                    menu::submenu(ui, &look, &menu::Item::new("Open recent"), |ui| {
+                        menu::item(ui, &look, &menu::Item::new("Bracket.dxf"));
+                    });
+                });
+            });
+        }
+    }
 }

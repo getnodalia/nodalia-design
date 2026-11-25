@@ -61,7 +61,7 @@ fn margin(value: f32) -> Margin {
     Margin::same(value.round().clamp(0.0, 127.0) as i8)
 }
 
-fn shadow(value: Shadow) -> ::egui::Shadow {
+pub(crate) fn shadow(value: Shadow) -> ::egui::Shadow {
     let offset = |v: f32| v.round().clamp(-128.0, 127.0) as i8;
     let size = |v: f32| v.round().clamp(0.0, 255.0) as u8;
     ::egui::Shadow {
