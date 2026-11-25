@@ -1,6 +1,6 @@
 //! The Preferences section: provider, model, key, address and approval.
 
-use egui::{Id, RichText, TextEdit, Ui};
+use egui::{vec2, Id, RichText, TextEdit, Ui};
 use nodalia_theme::for_egui::color;
 use nodalia_theme::office::{self, Look, CONTROL_WIDTH};
 
@@ -14,7 +14,8 @@ use crate::settings::Approval;
 pub fn preferences(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
     office::section(ui, look, lang.t("Assistant"), |ui| {
-        office::settings(ui, "assistant", |ui| {
+        ui.vertical(|ui| {
+            ui.spacing_mut().item_spacing.y = 10.0;
             provider_row(ui, look, a);
             model_row(ui, look, a);
             if a.settings.provider.needs_key() || a.settings.provider == Provider::Custom {
@@ -23,15 +24,25 @@ pub fn preferences(ui: &mut Ui, look: &Look, a: &mut Assistant) {
             if a.settings.provider.custom_address() {
                 address_row(ui, look, a);
             }
-            office::setting(ui, look, lang.t("Ask before changing the document"), |ui| {
+            row(ui, look, lang.t("Ask before changing the document"), |ui| {
                 let mut ask = a.settings.approval == Approval::Ask;
-                if ui.checkbox(&mut ask, "").changed() {
+                let check = ui.checkbox(&mut ask, "");
+                let name = lang.t("Ask before changing the document");
+                check.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::CheckBox, true, ask, name)
+                });
+                if check.changed() {
                     a.settings.approval = if ask { Approval::Ask } else { Approval::Auto };
                     a.save();
                 }
             });
-            office::setting(ui, look, lang.t("Show the assistant button"), |ui| {
-                if ui.checkbox(&mut a.settings.enabled, "").changed() {
+            row(ui, look, lang.t("Show the assistant button"), |ui| {
+                let check = ui.checkbox(&mut a.settings.enabled, "");
+                let name = lang.t("Show the assistant button");
+                check.widget_info(|| {
+                    egui::WidgetInfo::selected(egui::Role::CheckBox, true, a.settings.enabled, name)
+                });
+                if check.changed() {
                     a.save();
                 }
             });
@@ -46,11 +57,46 @@ pub fn preferences(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     });
 }
 
+/// Width of the label column of a Preferences row.
+const LABEL_WIDTH: f32 = 280.0;
+
+/// A Preferences row: the label on the left, the control in a column [`CONTROL_WIDTH`] wide
+/// that grows with what is in it, so a key's status lines and a failed connection never overlap
+/// the row below. The label stays level with the first line of the control.
+fn row<R>(ui: &mut Ui, look: &Look, label: &str, control: impl FnOnce(&mut Ui) -> R) -> R {
+    ui.horizontal_top(|ui| {
+        ui.allocate_ui_with_layout(
+            vec2(LABEL_WIDTH, 0.0),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| {
+                ui.set_width(LABEL_WIDTH);
+                ui.add_space(5.0);
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(label)
+                            .font(font(look, 13.5))
+                            .color(color(look.palette.text_primary)),
+                    )
+                    .wrap(),
+                );
+            },
+        );
+        ui.vertical(|ui| {
+            ui.set_width(CONTROL_WIDTH);
+            ui.spacing_mut().combo_width = CONTROL_WIDTH;
+            control(ui)
+        })
+        .inner
+    })
+    .inner
+}
+
 fn provider_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
-    office::setting(ui, look, lang.t("Provider"), |ui| {
+    row(ui, look, lang.t("Provider"), |ui| {
         let mut chosen = None;
-        egui::ComboBox::from_id_salt("ndl_assistant_provider")
+        let name = lang.t("Provider");
+        let combo = egui::ComboBox::from_id_salt("ndl_assistant_provider")
             .selected_text(a.settings.provider.name())
             .show_ui(ui, |ui| {
                 for p in Provider::ALL {
@@ -62,6 +108,9 @@ fn provider_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
                     }
                 }
             });
+        combo
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
         if let Some(p) = chosen {
             a.set_provider(p);
         }
@@ -71,7 +120,7 @@ fn provider_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
 fn model_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
     let provider = a.settings.provider;
-    office::setting(ui, look, lang.t("Model"), |ui| {
+    row(ui, look, lang.t("Model"), |ui| {
         ui.vertical(|ui| {
             let mut options: Vec<String> = match a.models() {
                 ModelList::Ready(list) => list.clone(),
@@ -98,16 +147,21 @@ fn model_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
                     current.clone()
                 };
                 let mut chosen = None;
-                egui::ComboBox::from_id_salt(("ndl_assistant_model_list", provider.id()))
-                    .selected_text(shown)
-                    .width(CONTROL_WIDTH)
-                    .show_ui(ui, |ui| {
-                        for m in &options {
-                            if ui.selectable_label(*m == current, m).clicked() {
-                                chosen = Some(m.clone());
+                let name = lang.t("Model");
+                let combo =
+                    egui::ComboBox::from_id_salt(("ndl_assistant_model_list", provider.id()))
+                        .selected_text(shown)
+                        .width(CONTROL_WIDTH)
+                        .show_ui(ui, |ui| {
+                            for m in &options {
+                                if ui.selectable_label(*m == current, m).clicked() {
+                                    chosen = Some(m.clone());
+                                }
                             }
-                        }
-                    });
+                        });
+                combo
+                    .response
+                    .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
                 if let Some(m) = chosen {
                     a.settings.set_model(&m);
                     a.save();
@@ -160,7 +214,7 @@ fn model_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
 fn key_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
     let provider = a.settings.provider;
-    office::setting(ui, look, lang.t("API key"), |ui| {
+    row(ui, look, lang.t("API key"), |ui| {
         ui.vertical(|ui| {
             let id = ui.make_persistent_id(("ndl_assistant_key", provider.id()));
             let mut typed: String = ui.data_mut(|d| d.get_temp::<String>(id)).unwrap_or_default();
@@ -216,7 +270,7 @@ fn key_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
 fn address_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
     let lang = a.lang;
     let provider = a.settings.provider;
-    office::setting(ui, look, lang.t("Server address"), |ui| {
+    row(ui, look, lang.t("Server address"), |ui| {
         let id = ui.make_persistent_id(("ndl_assistant_address", provider.id()));
         if let Some(text) = field(
             ui,
