@@ -157,6 +157,8 @@ Implementación: `engineering::menu`.
 - **Separador** (`menu::separator`): línea fina que deja 4 por encima y por debajo. **Encabezado**
   (`menu::heading`): nombre de sección en `caption` semibold y texto terciario (el nombre de un
   grupo del ribbon, «Recientes»).
+- Las listas de un desplegable (`ComboBox`) toman el mismo radio y margen sin más trabajo:
+  `apply_text_styles` llama a `menu::install`.
 - Los atajos se escriben como los muestra la plataforma (`Ctrl+O`, `⌘O`). Sin información sobre
   herramientas repetida: la fila ya dice lo que hace.
 

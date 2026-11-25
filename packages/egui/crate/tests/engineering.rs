@@ -107,6 +107,11 @@ fn the_parts_draw_and_the_text_styles_follow_the_scale() {
         style.text_styles[&egui::TextStyle::Monospace],
         eng::value_font()
     );
+    assert_eq!(
+        style.visuals.menu_corner_radius,
+        egui::CornerRadius::same(eng::menu::metric::RADIUS),
+        "a combo box's list gets the suite's menu surface too"
+    );
 }
 
 #[test]

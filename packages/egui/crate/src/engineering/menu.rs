@@ -144,6 +144,21 @@ pub fn style(look: &Look) -> impl Fn(&mut Style) + Clone + Send + Sync + 'static
     }
 }
 
+/// Gives every popup egui frames by itself (a combo box's list, a context menu nobody dressed
+/// with [`popup`]) the suite's surface radius and margin; colours, border and shadow already come
+/// from the NDL style. [`apply_text_styles`]
+/// calls it, so an app that follows the suite's type scale gets it too; call it again after
+/// `for_egui::apply`, which resets the style.
+///
+/// [`apply_text_styles`]: super::apply_text_styles
+pub fn install(ctx: &egui::Context) {
+    ctx.all_styles_mut(|style| {
+        let v = &mut style.visuals;
+        v.menu_corner_radius = CornerRadius::same(metric::RADIUS);
+        style.spacing.menu_margin = Margin::same(metric::MARGIN);
+    });
+}
+
 /// `popup` dressed as a suite menu: the suite's style on it and on the submenus it opens, and the
 /// gap between them. Use it on `Popup::menu`, `Popup::context_menu` or a `Popup::new(..)` of
 /// kind `Menu`.

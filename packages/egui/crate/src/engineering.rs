@@ -147,7 +147,7 @@ pub fn value_font() -> FontId {
 }
 
 /// Sets egui's text styles to the suite's scale: Body and Button [`body`], Small [`caption`],
-/// Heading [`panel_title`], Monospace [`value_font`]. Call it after the NDL style is applied
+/// Heading [`panel_title`], Monospace [`value_font`], and the menu surface ([`menu::install`]). Call it after the NDL style is applied
 /// (`for_egui::apply` sets sizes only); it changes every theme's style.
 pub fn apply_text_styles(ctx: &egui::Context) {
     ctx.all_styles_mut(|style| {
@@ -158,6 +158,7 @@ pub fn apply_text_styles(ctx: &egui::Context) {
         style.text_styles.insert(TextStyle::Heading, panel_title());
         style.text_styles.insert(TextStyle::Monospace, value_font());
     });
+    menu::install(ctx);
 }
 
 // --- Shell layout -----------------------------------------------------------------------------
