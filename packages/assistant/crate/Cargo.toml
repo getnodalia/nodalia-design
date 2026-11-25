@@ -1,0 +1,26 @@
+[package]
+name = "nodalia-assistant"
+version = "0.1.0-alpha.1"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+description = "The AI assistant of the Nodalia office apps: providers, the user's own keys in the OS keychain, a tool-using chat, and the egui panel they share."
+repository = "https://github.com/danielmigueltejedor/nodalia-design"
+publish = false
+
+[features]
+# `nodalia_assistant::ui`: the title-bar button, the chat panel and the Preferences section.
+egui = ["dep:egui", "dep:nodalia-theme"]
+
+[dependencies]
+serde_json = "1"
+ureq = { version = "3.5", features = ["platform-verifier"] }
+# The OS keychain: Keychain Services, Credential Manager or the Secret Service.
+keyring = "4"
+egui = { version = "0.37", default-features = false, optional = true }
+nodalia-theme = { path = "../../egui/crate", features = ["egui"], optional = true }
+
+# Standalone on purpose, like nodalia-update: apps take this crate as a git dependency into their
+# own workspace. Native only: a browser build has no keychain and no sockets, so the apps leave
+# it out of their wasm targets.
+[workspace]
