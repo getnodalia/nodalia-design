@@ -116,7 +116,7 @@ impl<'a> Item<'a> {
 /// The style a menu's `Ui` takes: Plex body text, no frames on rows, and the surface's colours,
 /// radius, margin and shadow, which egui reads from here when it frames a popup.
 pub fn style(look: &Look) -> impl Fn(&mut Style) + Clone + Send + Sync + 'static {
-    let p = look.palette.clone();
+    let p = look.palette;
     move |style: &mut Style| {
         let v = &mut style.visuals;
         v.window_fill = color(p.surface_overlay);
