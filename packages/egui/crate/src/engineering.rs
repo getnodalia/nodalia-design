@@ -386,10 +386,21 @@ pub fn ribbon_tab(ui: &mut Ui, look: &Look, text: &str, selected: bool) -> Respo
     resp
 }
 
+/// The size of a ribbon tool: the standard cell, widened when its label needs more room so two
+/// neighbouring labels never overlap ("Compare" next to "Save report").
+fn tool_size(ui: &Ui, text: &str) -> egui::Vec2 {
+    let label = ui.painter().layout_no_wrap(
+        text.to_owned(),
+        FontId::new(size::CAPTION + 0.5, FontFamily::Proportional),
+        egui::Color32::PLACEHOLDER,
+    );
+    vec2(layout::TOOL.x.max(label.size().x + 14.0), layout::TOOL.y)
+}
+
 /// A ribbon tool: a 22 pt CAD icon (accent parts tinted) over a one-line label.
 pub fn ribbon_tool(ui: &mut Ui, look: &Look, icon: &str, text: &str, active: bool) -> Response {
     let p = &look.palette;
-    let (rect, resp) = ui.allocate_exact_size(layout::TOOL, Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(tool_size(ui, text), Sense::click());
     resp.widget_info(|| WidgetInfo::selected(Role::Button, true, active, text));
     let painter = ui.painter();
     if active {
@@ -451,7 +462,7 @@ pub fn paint_volumetric(painter: &egui::Painter, rect: Rect, look: &Look, name: 
 /// icon of the same name when there is no volumetric one.
 pub fn ribbon_tool_3d(ui: &mut Ui, look: &Look, icon: &str, text: &str, active: bool) -> Response {
     let p = &look.palette;
-    let (rect, resp) = ui.allocate_exact_size(layout::TOOL, Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(tool_size(ui, text), Sense::click());
     resp.widget_info(|| WidgetInfo::selected(Role::Button, true, active, text));
     let painter = ui.painter();
     if active {

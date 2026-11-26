@@ -13,6 +13,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - `nodalia-update`: `Error::describe(Language)` da el error en español o inglés y dice qué hacer, para que las apps GTK (Brújula, Vinilo) muestren lo mismo que las ventanas de egui en vez del texto técnico en inglés.
 
 ### Corregido
+- `nodalia-theme`: las herramientas de la cinta de ingeniería (`engineering::ribbon_tool` y `ribbon_tool_3d`) se ensanchan cuando su etiqueta no cabe en la celda estándar, así que «Comparar» y «Guardar informe» ya no se pisan.
 - `nodalia-update`: buscar actualizaciones ya no falla con «http status: 403» cuando se agota el límite de GitHub de 60 consultas por hora sin cuenta, que comparte toda la red. La lista de versiones se guarda en disco y se pide de nuevo con `If-None-Match` (un `304` no cuenta para el límite); una lista de hace menos de cinco minutos se usa tal cual, así que «Reintentar» no gasta nada; y con el límite agotado, la página `releases/latest` (que no es la API) sigue diciendo si hay versión nueva, que se ofrece con su página. En las ventanas de egui los errores salen en el idioma de la app y dicen qué hacer, con los minutos que faltan si GitHub lo dice.
 
 ### Añadido
