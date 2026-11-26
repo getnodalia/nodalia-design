@@ -430,34 +430,13 @@ pub fn search_field(
         .inner
 }
 
-/// What the [`workspace_selector`] list was used for.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WorkspacePick {
-    /// The workspace at this index of `workspaces`.
-    Workspace(usize),
-    /// The action at this index of `actions` (Reset, New Workspace…, Manage Workspaces…).
-    Action(usize),
-}
-
-/// The app bar's workspace selector: the current workspace in a field-shaped pill with a chevron.
-/// Its list shows `workspaces` (presets, then the user's own from `saved_from`, after a line) with
-/// a check by `current`, then `actions` after a line.
-#[allow(clippy::too_many_arguments)]
-pub fn workspace_selector(
-    ui: &mut Ui,
-    look: &Look,
-    id: &str,
-    current: &str,
-    workspaces: &[&str],
-    saved_from: usize,
-    actions: &[&str],
-    width: f32,
-) -> Option<WorkspacePick> {
+/// The field-shaped pill a selector shows when closed: `text` truncated, a chevron at the right,
+/// the hover tint while it is hovered or its popup `popup_id` is open. Returns its response.
+fn selector_pill(ui: &mut Ui, look: &Look, popup_id: Id, text: &str, width: f32) -> Response {
     let p = &look.palette;
     let (rect, resp) = ui.allocate_exact_size(vec2(width, layout::CONTROL_HEIGHT), Sense::click());
     let resp = resp.on_hover_cursor(egui::CursorIcon::PointingHand);
-    resp.widget_info(|| WidgetInfo::labeled(Role::ComboBox, true, current));
-    let popup_id = Id::NULL.with(("ndl_creator_workspace", id));
+    resp.widget_info(|| WidgetInfo::labeled(Role::ComboBox, true, text));
     let open = egui::Popup::is_id_open(ui.ctx(), popup_id);
     let fill = if open || resp.hovered() {
         color(p.control_bg_hover)
@@ -483,7 +462,7 @@ pub fn workspace_selector(
         );
     }
     let mut job = egui::text::LayoutJob::simple_singleline(
-        current.to_owned(),
+        text.to_owned(),
         FontId::proportional(13.0),
         color(p.text_primary),
     );
@@ -494,6 +473,35 @@ pub fn workspace_selector(
         galley,
         color(p.text_primary),
     );
+    resp
+}
+
+/// What the [`workspace_selector`] list was used for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkspacePick {
+    /// The workspace at this index of `workspaces`.
+    Workspace(usize),
+    /// The action at this index of `actions` (Reset, New Workspace…, Manage Workspaces…).
+    Action(usize),
+}
+
+/// The app bar's workspace selector: the current workspace in a field-shaped pill with a chevron.
+/// Its list shows `workspaces` (presets, then the user's own from `saved_from`, after a line) with
+/// a check by `current`, then `actions` after a line.
+#[allow(clippy::too_many_arguments)]
+pub fn workspace_selector(
+    ui: &mut Ui,
+    look: &Look,
+    id: &str,
+    current: &str,
+    workspaces: &[&str],
+    saved_from: usize,
+    actions: &[&str],
+    width: f32,
+) -> Option<WorkspacePick> {
+    let p = &look.palette;
+    let popup_id = Id::NULL.with(("ndl_creator_workspace", id));
+    let resp = selector_pill(ui, look, popup_id, current, width);
     let mut picked = None;
     egui::Popup::menu(&resp).id(popup_id).show(|ui| {
         ui.set_min_width(width.max(200.0));
@@ -536,3 +544,78 @@ pub fn workspace_selector(
     });
     picked
 }
+
+/// A dropdown for choosing one of many options, such as the interface language: the current choice
+/// in a field-shaped pill, and a list under it with a check by `selected`. A list of more than
+/// [`PICKER_SEARCH_FROM`] items starts with a search field, and the list scrolls. Returns the index
+/// into `items` that was picked this frame.
+pub fn picker(
+    ui: &mut Ui,
+    look: &Look,
+    id: &str,
+    current: &str,
+    items: &[&str],
+    selected: Option<usize>,
+    width: f32,
+) -> Option<usize> {
+    let p = &look.palette;
+    let popup_id = Id::NULL.with(("ndl_creator_picker", id));
+    let resp = selector_pill(ui, look, popup_id, current, width);
+    let query_id = popup_id.with("query");
+    let mut picked = None;
+    egui::Popup::menu(&resp).id(popup_id).show(|ui| {
+        ui.set_min_width(width.max(220.0));
+        let mut query = ui
+            .data_mut(|d| d.get_temp::<String>(query_id))
+            .unwrap_or_default();
+        if items.len() > PICKER_SEARCH_FROM {
+            search_field(ui, look, &mut query, "", width.max(220.0) - 12.0);
+            ui.add_space(4.0);
+        }
+        let needle = query.trim().to_lowercase();
+        egui::ScrollArea::vertical()
+            .max_height(320.0)
+            .show(ui, |ui| {
+                for (i, name) in items.iter().enumerate() {
+                    if !needle.is_empty() && !name.to_lowercase().contains(&needle) {
+                        continue;
+                    }
+                    let checked = selected == Some(i);
+                    let clicked = ui
+                        .horizontal(|ui| {
+                            let (mark, _) =
+                                ui.allocate_exact_size(vec2(16.0, 16.0), Sense::hover());
+                            if checked {
+                                if let Some(icon) = icons::get("check") {
+                                    icons::paint(
+                                        ui.painter(),
+                                        mark,
+                                        icon,
+                                        icons::Style::bold(color(p.text_link)),
+                                    );
+                                }
+                            }
+                            let mut text = egui::RichText::new(*name);
+                            if checked {
+                                text = text.font(FontId::new(13.0, look.strong.clone()));
+                            }
+                            ui.add(egui::Button::new(text).frame(false))
+                        })
+                        .inner
+                        .clicked();
+                    if clicked {
+                        picked = Some(i);
+                        ui.close();
+                    }
+                }
+            });
+        ui.data_mut(|d| d.insert_temp(query_id, query));
+    });
+    if picked.is_some() {
+        ui.data_mut(|d| d.remove::<String>(query_id));
+    }
+    picked
+}
+
+/// A [`picker`] list with more items than this starts with a search field.
+pub const PICKER_SEARCH_FROM: usize = 8;

@@ -949,6 +949,15 @@ pub fn home_look(look: &Look) -> crate::office::Look {
     crate::office::Look::new(look.palette).with_bold(family(Some(SEMIBOLD)))
 }
 
+/// The look the shared About window (`about::heading` and `about::page`) is drawn with: the same
+/// page as every Nodalia app, in the suite's faces, so a title is Plex Sans semibold here as it is
+/// Inter semibold in the creator apps.
+pub fn about_look(look: &Look) -> crate::creator::Look {
+    crate::creator::Look::new(look.palette)
+        .strong_family(family(Some(SEMIBOLD)))
+        .medium_family(family(Some(MEDIUM)))
+}
+
 /// The top of Home: the app's icon (or nothing), its name as the page title and a caption under
 /// it (the version, or what the app is for).
 pub fn home_header(

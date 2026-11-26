@@ -212,6 +212,13 @@ cierre, «Torno 0.2.0 está disponible» y «Tienes la 0.1.3.» como líneas de 
 un marco hundido, y debajo de una línea los botones, el principal el último y en acento. Por
 dentro cada app actualiza en su sitio y se reinicia, como el resto de Nodalia.
 
+## Acerca de
+
+El «Acerca de» de las tres apps es el común de Nodalia (`docs/suites/about.md`): `about::heading` y
+`about::page` con `engineering::about_look`, que les da Plex Sans seminegrita y media. Sin tarjetas
+propias, sin pestañas de Colaboradores ni Modelos y sin botón «Cerrar» abajo; la app es dueña de la
+ventana y abre el enlace que la página devuelve.
+
 ## Iconos
 
 Iconos CAD en `packages/icons`, grupo `cad`: un mismo concepto es el mismo icono en las tres

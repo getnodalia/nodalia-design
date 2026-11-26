@@ -75,6 +75,12 @@ Un diálogo NDL (solo botón de cerrar, `close_button`) con la búsqueda a todo 
 gris con texto seminegrita) y la página a la derecha. Abajo a la derecha **Aceptar**
 (`primary_button`), **Cancelar** y **Aplicar** (`secondary_button`).
 
+Una opción entre muchas, como el **idioma de la interfaz**, se elige con `creator::picker`: el valor
+actual en una píldora con forma de campo y chevron (la del selector de espacio de trabajo) y, debajo,
+la lista con una marca en la opción actual y el nombre en seminegrita. Con más de ocho opciones la
+lista lleva buscador y se desplaza. Cada suite tiene su propio desplegable (oficina y ingeniería
+usan el `ComboBox` de su estilo); este es el de las creativas.
+
 ## Diálogos
 
 - Título en seminegrita a la izquierda y `close_button` (círculo de 28) a la derecha, a la misma

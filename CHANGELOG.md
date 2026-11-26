@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
+- `nodalia-theme`: `creator::picker`, el desplegable de las apps creativas para elegir entre muchas opciones, como el idioma de la interfaz: el valor en una píldora con forma de campo (la misma del selector de espacio de trabajo) y, debajo, la lista con marca en la opción actual, buscador a partir de ocho opciones y desplazamiento.
+- `nodalia-theme`: `engineering::about_look` da al «Acerca de» común (`about::heading` y `about::page`) las tipografías de la suite de ingeniería, y la característica `engineering` ya incluye `creator`. Torno, Vortia y Forja muestran la misma ventana que el resto de las apps.
 - Acentos de Circuito (`circuito`, `#C99A06`, ámbar de cobre) y de Ábaco (`abaco`, `#A23B72`, ciruela), las dos apps nuevas de la suite de ingeniería, en `accents.json`, `nodalia-theme` (`Accent::Circuito`, `Accent::Abaco`) y la tabla de tokens; sus iconos serán los retratos de Gustav Kirchhoff y John Napier (`docs/iconography.md`).
 - Acento de Orbe (`orbe`, `#DDA10A`) para el motor de videojuegos de Nodalia, en `accents.json`, `nodalia-theme` (`Accent::Orbe`) y la tabla de tokens, y su fondo de DMG en `tools/dmg-background`; su icono será el retrato de Johannes Kepler (`docs/iconography.md`).
 - Acento de Código (`codigo`, `#0B9A80`) para el IDE de Nodalia, en `accents.json`, `nodalia-theme` (`Accent::Codigo`) y la tabla de tokens; su icono será el retrato de Ada Lovelace (`docs/iconography.md`).
