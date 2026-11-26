@@ -129,7 +129,8 @@ fn every_part_draws_in_both_modes_for_both_apps() {
                 assert!(!ent::danger_button(ui, &look, "Delete", false).clicked());
                 ent::field_label(ui, &look, "Server");
                 let mut text = String::new();
-                ent::field(ui, &look, &mut text, "chat.example.org", true);
+                ent::field(ui, &look, &mut text, "chat.example.org", false);
+                ent::field(ui, &look, &mut text, "", true);
                 ent::toasts(ui, &look, ["Saved", "Copied"].into_iter());
                 assert_eq!(
                     ent::picker(
