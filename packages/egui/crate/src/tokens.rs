@@ -317,10 +317,12 @@ pub enum Accent {
     Hito,
     Codigo,
     Orbe,
+    Circuito,
+    Abaco,
 }
 
 impl Accent {
-    pub const ALL: [Accent; 24] = [Accent::Nodalia, Accent::Nodalix, Accent::Vortia, Accent::Brujula, Accent::Vinilo, Accent::Buzon, Accent::Letra, Accent::Celdas, Accent::Lamina, Accent::Papel, Accent::Pliego, Accent::Pluma, Accent::Lienzo, Accent::Luz, Accent::Toma, Accent::Pulso, Accent::Forja, Accent::Torno, Accent::Trama, Accent::Agora, Accent::Anima, Accent::Hito, Accent::Codigo, Accent::Orbe];
+    pub const ALL: [Accent; 26] = [Accent::Nodalia, Accent::Nodalix, Accent::Vortia, Accent::Brujula, Accent::Vinilo, Accent::Buzon, Accent::Letra, Accent::Celdas, Accent::Lamina, Accent::Papel, Accent::Pliego, Accent::Pluma, Accent::Lienzo, Accent::Luz, Accent::Toma, Accent::Pulso, Accent::Forja, Accent::Torno, Accent::Trama, Accent::Agora, Accent::Anima, Accent::Hito, Accent::Codigo, Accent::Orbe, Accent::Circuito, Accent::Abaco];
 
     /// The name used by the other NDL adapters (`data-accent` on the web).
     pub const fn name(self) -> &'static str {
@@ -349,6 +351,8 @@ impl Accent {
             Accent::Hito => "hito",
             Accent::Codigo => "codigo",
             Accent::Orbe => "orbe",
+            Accent::Circuito => "circuito",
+            Accent::Abaco => "abaco",
         }
     }
 }
@@ -1273,6 +1277,86 @@ impl Mode {
                 p.accent_subtle = Rgba::new(68, 49, 6, 255);
                 p.accent_text = Rgba::new(241, 195, 110, 255);
                 p.selection_bg = Rgba::new(98, 69, 3, 255);
+            }
+            (Accent::Circuito, Mode::Light) => {
+                p.text_link = Rgba::new(117, 88, 3, 255);
+                p.border_focus = Rgba::new(148, 112, 3, 255);
+                p.accent_default = Rgba::new(148, 112, 3, 255);
+                p.accent_hover = Rgba::new(117, 88, 3, 255);
+                p.accent_pressed = Rgba::new(95, 71, 3, 255);
+                p.accent_subtle = Rgba::new(248, 240, 222, 255);
+                p.accent_text = Rgba::new(117, 88, 3, 255);
+                p.selection_bg = Rgba::new(248, 240, 222, 255);
+            }
+            (Accent::Circuito, Mode::Dark) => {
+                p.text_link = Rgba::new(222, 173, 35, 255);
+                p.border_focus = Rgba::new(222, 173, 35, 255);
+                p.accent_default = Rgba::new(222, 173, 35, 255);
+                p.accent_hover = Rgba::new(238, 197, 100, 255);
+                p.accent_pressed = Rgba::new(199, 154, 22, 255);
+                p.accent_subtle = Rgba::new(66, 49, 6, 255);
+                p.accent_text = Rgba::new(222, 173, 35, 255);
+                p.selection_bg = Rgba::new(66, 49, 6, 255);
+            }
+            (Accent::Circuito, Mode::LightHc) => {
+                p.text_link = Rgba::new(95, 71, 3, 255);
+                p.border_focus = Rgba::new(95, 71, 3, 255);
+                p.accent_default = Rgba::new(95, 71, 3, 255);
+                p.accent_hover = Rgba::new(66, 49, 6, 255);
+                p.accent_pressed = Rgba::new(49, 36, 4, 255);
+                p.accent_subtle = Rgba::new(248, 240, 222, 255);
+                p.accent_text = Rgba::new(95, 71, 3, 255);
+                p.selection_bg = Rgba::new(248, 240, 222, 255);
+            }
+            (Accent::Circuito, Mode::DarkHc) => {
+                p.text_link = Rgba::new(238, 197, 100, 255);
+                p.border_focus = Rgba::new(238, 197, 100, 255);
+                p.accent_default = Rgba::new(238, 197, 100, 255);
+                p.accent_hover = Rgba::new(248, 240, 222, 255);
+                p.accent_pressed = Rgba::new(222, 173, 35, 255);
+                p.accent_subtle = Rgba::new(66, 49, 6, 255);
+                p.accent_text = Rgba::new(238, 197, 100, 255);
+                p.selection_bg = Rgba::new(95, 71, 3, 255);
+            }
+            (Accent::Abaco, Mode::Light) => {
+                p.text_link = Rgba::new(155, 56, 109, 255);
+                p.border_focus = Rgba::new(194, 72, 138, 255);
+                p.accent_default = Rgba::new(194, 72, 138, 255);
+                p.accent_hover = Rgba::new(155, 56, 109, 255);
+                p.accent_pressed = Rgba::new(125, 45, 88, 255);
+                p.accent_subtle = Rgba::new(246, 239, 242, 255);
+                p.accent_text = Rgba::new(155, 56, 109, 255);
+                p.selection_bg = Rgba::new(246, 239, 242, 255);
+            }
+            (Accent::Abaco, Mode::Dark) => {
+                p.text_link = Rgba::new(233, 157, 192, 255);
+                p.border_focus = Rgba::new(233, 157, 192, 255);
+                p.accent_default = Rgba::new(233, 157, 192, 255);
+                p.accent_hover = Rgba::new(231, 191, 208, 255);
+                p.accent_pressed = Rgba::new(230, 127, 177, 255);
+                p.accent_subtle = Rgba::new(88, 32, 61, 255);
+                p.accent_text = Rgba::new(233, 157, 192, 255);
+                p.selection_bg = Rgba::new(88, 32, 61, 255);
+            }
+            (Accent::Abaco, Mode::LightHc) => {
+                p.text_link = Rgba::new(125, 45, 88, 255);
+                p.border_focus = Rgba::new(125, 45, 88, 255);
+                p.accent_default = Rgba::new(125, 45, 88, 255);
+                p.accent_hover = Rgba::new(88, 32, 61, 255);
+                p.accent_pressed = Rgba::new(67, 22, 46, 255);
+                p.accent_subtle = Rgba::new(246, 239, 242, 255);
+                p.accent_text = Rgba::new(125, 45, 88, 255);
+                p.selection_bg = Rgba::new(246, 239, 242, 255);
+            }
+            (Accent::Abaco, Mode::DarkHc) => {
+                p.text_link = Rgba::new(231, 191, 208, 255);
+                p.border_focus = Rgba::new(231, 191, 208, 255);
+                p.accent_default = Rgba::new(231, 191, 208, 255);
+                p.accent_hover = Rgba::new(246, 239, 242, 255);
+                p.accent_pressed = Rgba::new(233, 157, 192, 255);
+                p.accent_subtle = Rgba::new(88, 32, 61, 255);
+                p.accent_text = Rgba::new(231, 191, 208, 255);
+                p.selection_bg = Rgba::new(125, 45, 88, 255);
             }
         }
         p
