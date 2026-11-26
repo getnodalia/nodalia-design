@@ -26,6 +26,8 @@ python3 tools/app-portrait/portrait.py RETRATO SALIDA.png --box L,T,R,B --colors
   figura.
 - `--sub-mask X,Y,X,Y,...`: un polígono, en píxeles del original, que se resta a la figura cuando el
   modelo se queda con algo pegado a ella (un muñeco, un marco). Ánima lo usa con la foto de 1921.
+- `--no-matting`: sin el afinado de bordes (alpha matting). Es lo que conviene a las pinturas
+  oscuras, donde el afinado deshilacha el contorno; el borde queda con una mediana de 7 px.
 - `--model`: el modelo de rembg; `u2net_human_seg` (el de por defecto) es el que mejor separa
   retratos.
 
@@ -42,5 +44,17 @@ python3 tools/app-portrait/portrait.py "Joseph_Marie_Jacquard-portrait.jpg" tram
 python3 tools/app-portrait/portrait.py "Emile_Cohl_portrait.jpg" anima.png --box 0,20,1080,1100 \
   --colors '#6B4CE8' '#5034C6' --gamma 1.1
 ```
+
+## Del retrato a los archivos del icono
+
+```sh
+python3 tools/app-portrait/icon-set.py codigo.png assets/icons --slug codigo \
+  --app-id dev.danielmiguelt.Codigo --comment 'Código app icon: ...'
+```
+
+`icon-set.py` (solo necesita Pillow) escribe el SVG maestro (512, radio 112), el SVG de la
+retícula de Colloid, los PNG de la retícula de Apple (16 a 1024), el `.ico` de Windows y la carpeta
+`hicolor` (16 a 512 y escalable) que instalan los paquetes de Linux. Para nodalix-icon-theme se
+usa `nodalix-icon-theme/tools/nodalia-app-icon.py`.
 
 Mira siempre el resultado a 512, 64 y 16 px antes de llevarlo a la app.
