@@ -4,7 +4,7 @@ app's colour field, full bleed, 1024 px (see README.md).
 
 Usage:
   portrait.py SOURCE OUT.png --box L,T,R,B --colors TOP BOTTOM [--gamma G]
-              [--model NAME] [--add-mask X,Y,X,Y,...] [--sub-mask X,Y,X,Y,...] [--mask X,Y,X,Y,...]
+              [--model NAME] [--add-mask X,Y,X,Y,...] [--sub-mask X,Y,X,Y,...] [--mask X,Y,X,Y,...] [--no-matting]
 
 SOURCE is the portrait as downloaded (any size); the figure is found on the whole image, then
 the square BOX (pixels of SOURCE; it may reach past the edges) is what fills the tile. Needs
@@ -27,11 +27,17 @@ def rgb(hex_colour):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
-def cut_out(image, model, extra, removed=None):
-    # Matting keeps hair and fabric edges soft instead of stair-stepped.
-    cut = remove(image, session=new_session(model), alpha_matting=True,
-                 alpha_matting_foreground_threshold=240, alpha_matting_background_threshold=15,
-                 alpha_matting_erode_size=8)
+def cut_out(image, model, extra, removed=None, matting=True):
+    # Matting keeps hair and fabric edges soft instead of stair-stepped. On a painting with dark
+    # clothes on a dark ground it frays the edge instead; --no-matting takes the model's own
+    # mask, smoothed, which reads cleaner there.
+    if matting:
+        cut = remove(image, session=new_session(model), alpha_matting=True,
+                     alpha_matting_foreground_threshold=240, alpha_matting_background_threshold=15,
+                     alpha_matting_erode_size=8)
+    else:
+        cut = remove(image, session=new_session(model))
+        cut.putalpha(cut.getchannel('A').filter(ImageFilter.MedianFilter(7)))
     if extra:
         # Where the model loses a shoulder into a background of the same tone, a hand-drawn
         # polygon (pixels of SOURCE) adds it back.
@@ -84,6 +90,8 @@ def main():
     parser.add_argument('--model', default='u2net_human_seg')
     parser.add_argument('--add-mask', type=numbers, default=None, help='X,Y,X,Y,...: polygon added to the figure')
     parser.add_argument('--sub-mask', type=numbers, default=None, help='X,Y,X,Y,...: polygon removed from the figure')
+    parser.add_argument('--no-matting', action='store_true',
+                        help='use the model\'s mask, smoothed, without alpha matting (dark paintings)')
     parser.add_argument('--mask', type=numbers, default=None,
                         help='X,Y,X,Y,...: the figure is this polygon, without the model (engravings)')
     args = parser.parse_args()
@@ -92,7 +100,7 @@ def main():
     if args.mask:
         cut = traced(source, args.mask)
     else:
-        cut = cut_out(source, args.model, args.add_mask, args.sub_mask)
+        cut = cut_out(source, args.model, args.add_mask, args.sub_mask, not args.no_matting)
     cut = cut.crop(tuple(args.box)).resize((SIZE, SIZE), Image.LANCZOS)
     alpha = cut.getchannel('A').filter(ImageFilter.GaussianBlur(1.2))
 

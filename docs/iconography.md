@@ -81,7 +81,7 @@ Cada app Nodalia lleva como icono el retrato de una figura histórica ligada a l
 | Letra | Miguel de Cervantes | Trama | Charles Babbage |
 | Lienzo | Diego Velázquez | Vinilo | Ludwig van Beethoven |
 | Luz | Louis Daguerre | Vortia | Daniel Bernoulli |
-| Hito | Lillian Moller Gilbreth | Código | Ada Lovelace |
+| Hito | Lillian Moller Gilbreth | Código | Grace Hopper |
 | Orbe | Johannes Kepler | Circuito | Gustav Kirchhoff |
 | Ábaco | John Napier | | |
 
