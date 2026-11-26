@@ -159,7 +159,7 @@ fn spanish(key: &str) -> Option<&'static str> {
         "The system keychain is not available. The key will be kept until you close the app." => {
             "El llavero del sistema no está disponible. La clave se conservará hasta que cierres la app."
         }
-        "Keychain: {error}" => "Llavero: {error}",
+        "The system keychain could not be read." => "No se pudo leer el llavero del sistema.",
         "Get a key" => "Conseguir una clave",
         "Check connection" => "Comprobar conexión",
         "Checking…" => "Comprobando…",
