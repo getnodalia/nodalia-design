@@ -17,6 +17,9 @@ engineering = ["egui", "creator"]
 # The creator suite's shared parts (`creator`): workspace selector, dialog buttons, Home rail, fields,
 # and the About window (`about`) every egui app shares, whatever its suite.
 creator = ["egui"]
+# The enterprise suite's shared parts (`enterprise`): the window frame, top bar, sidebar, sign-in card
+# and integration cards of Ágora, Hito and the apps to come.
+enterprise = ["egui", "creator"]
 
 [dependencies]
 egui = { version = "0.37", default-features = false, optional = true }
