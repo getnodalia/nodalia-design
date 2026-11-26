@@ -496,3 +496,44 @@ mod menu {
         }
     }
 }
+
+#[test]
+fn ribbon_tools_widen_for_long_labels_instead_of_overlapping() {
+    let look = Look::new(Mode::Dark.palette_with(Accent::Torno));
+    let ctx = egui::Context::default();
+    eng::install_fonts(&ctx);
+    let mut rects = Vec::new();
+    for _ in 0..2 {
+        rects.clear();
+        let mut out = ctx.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::pos2(0.0, 0.0),
+                    egui::vec2(800.0, 200.0),
+                )),
+                ..Default::default()
+            },
+            |ui| {
+                ui.spacing_mut().item_spacing = egui::vec2(2.0, 0.0);
+                ui.horizontal(|ui| {
+                    for text in ["Compare", "Save the full report"] {
+                        rects.push(eng::ribbon_tool(ui, &look, "run", text, false).rect);
+                        rects.push(eng::ribbon_tool_3d(ui, &look, "cfd-report", text, false).rect);
+                    }
+                });
+            },
+        );
+        out.textures_delta.clear();
+    }
+    assert!(
+        rects[0].width() >= 60.0,
+        "short labels keep the standard cell"
+    );
+    assert!(rects[2].width() > 60.0, "a long label widens its cell");
+    for pair in rects.windows(2) {
+        assert!(
+            pair[0].right() <= pair[1].left(),
+            "neighbouring tools overlap"
+        );
+    }
+}
