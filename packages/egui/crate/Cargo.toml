@@ -13,7 +13,7 @@ default = []
 # Builds `egui::Style` and `egui::Visuals` from the tokens. Without it the crate has no dependencies.
 egui = ["dep:egui"]
 # The engineering suite's shared parts (`engineering`), with IBM Plex Sans and Mono embedded (~670 KB).
-engineering = ["egui"]
+engineering = ["egui", "creator"]
 # The creator suite's shared parts (`creator`): workspace selector, dialog buttons, Home rail, fields,
 # and the About window (`about`) every egui app shares, whatever its suite.
 creator = ["egui"]

@@ -218,3 +218,28 @@ fn the_close_disc_is_not_clipped_by_a_flush_edge() {
         );
     }
 }
+
+#[test]
+fn the_picker_is_a_field_that_opens_a_searchable_list() {
+    let look = look(Mode::Light);
+    let names: Vec<String> = (0..20).map(|i| format!("Language {i}")).collect();
+    let items: Vec<&str> = names.iter().map(String::as_str).collect();
+    let ctx = egui::Context::default();
+    let popup = egui::Id::NULL.with(("ndl_creator_picker", "lang"));
+    for frame in 0..4 {
+        if frame == 2 {
+            egui::Popup::open_id(&ctx, popup);
+        }
+        let mut size = vec2(0.0, 0.0);
+        let mut picked = Some(0);
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let before = ui.cursor().min;
+            picked = cr::picker(ui, &look, "lang", "Language 3", &items, Some(3), 260.0);
+            size = ui.min_rect().max - before;
+        });
+        out.textures_delta.clear();
+        assert_eq!(picked, None, "nothing is picked without a click");
+        assert_eq!(size.y, layout::CONTROL_HEIGHT, "the closed field's height");
+    }
+    assert!(egui::Popup::is_id_open(&ctx, popup), "the list stays open");
+}

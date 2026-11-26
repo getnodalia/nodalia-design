@@ -537,3 +537,34 @@ fn ribbon_tools_widen_for_long_labels_instead_of_overlapping() {
         );
     }
 }
+
+#[test]
+fn the_shared_about_window_is_drawn_in_the_suite_faces() {
+    use nodalia_theme::about::{self, Info, Link};
+    let ctx = egui::Context::default();
+    eng::install_fonts(&ctx);
+    let look = eng::about_look(&Look::new(Mode::Light.palette_with(Accent::Torno)));
+    assert_eq!(look.strong, FontFamily::Name(eng::SEMIBOLD.into()));
+    assert_eq!(look.medium, FontFamily::Name(eng::MEDIUM.into()));
+    let links = [Link {
+        label: "Website",
+        url: "https://getnodalia.com/torno",
+    }];
+    let info = Info {
+        name: "Torno",
+        version: "Version 0.1.0",
+        tagline: "Parametric 3D CAD.",
+        suite: "Part of the Nodalia suite of engineering tools.",
+        links: &links,
+        footer: "MIT OR Apache-2.0",
+    };
+    for _ in 0..2 {
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            assert!(!about::heading(ui, &look, "About Torno", egui::Id::NULL.with("close")).closed);
+            let page = about::page(ui, &look, &info, |_, _| {});
+            assert_eq!(page.links.len(), 1);
+            assert_eq!(page.picked, None);
+        });
+        out.textures_delta.clear();
+    }
+}
