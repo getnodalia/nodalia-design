@@ -51,6 +51,11 @@ pub enum Style {
     /// the buttons under a rule. It draws with the app's own text styles and colours, so the
     /// suite's typeface and theme (`nodalia_theme::engineering`) carry through.
     Engineering,
+    /// The enterprise suite's window (Ágora, Hito and the apps to come): the heading, the version
+    /// you have under it, the release notes on a rounded card of their own and the buttons below,
+    /// with the accent on the main one. Same shape as the suite's integration cards
+    /// (`nodalia_theme::enterprise::integrations`).
+    Enterprise,
 }
 
 /// Where the flow is.
@@ -141,7 +146,8 @@ impl Updater {
         self
     }
 
-    /// Draws the window in `style` ([`Style::Engineering`] for the engineering apps).
+    /// Draws the window in `style` ([`Style::Engineering`] for the engineering apps,
+    /// [`Style::Enterprise`] for the enterprise ones).
     pub fn with_style(mut self, style: Style) -> Self {
         self.style = style;
         self
@@ -397,6 +403,7 @@ impl Updater {
         };
 
         let engineering = self.style == Style::Engineering;
+        let enterprise = self.style == Style::Enterprise;
         // The engineering window names the window in the bar and says which version is offered
         // on the first report line; the standard one puts that in the heading.
         let shown_title = match (&self.status, engineering) {
@@ -444,8 +451,11 @@ impl Updater {
                     }
                     Status::Offer(release) => {
                         let blocks = crate::notes_blocks(&release.notes, language);
-                        if engineering {
-                            ui.label(words.available_line(self.app.name, &release.version));
+                        if engineering || enterprise {
+                            // The enterprise heading already says which version is offered.
+                            if engineering {
+                                ui.label(words.available_line(self.app.name, &release.version));
+                            }
                             ui.label(
                                 egui::RichText::new(words.you_have(self.app.version))
                                     .small()
@@ -474,6 +484,19 @@ impl Updater {
                                 .stroke(visuals.widgets.noninteractive.bg_stroke)
                                 .corner_radius(6.0)
                                 .inner_margin(8.0)
+                                .show(ui, |ui| {
+                                    ui.set_width(ui.available_width());
+                                    notes(ui);
+                                });
+                        } else if enterprise {
+                            // A card: the notes read as a document of their own, on the same
+                            // surface and with the same corners as the suite's integration cards.
+                            let visuals = ui.visuals();
+                            egui::Frame::new()
+                                .fill(visuals.faint_bg_color)
+                                .stroke(visuals.widgets.noninteractive.bg_stroke)
+                                .corner_radius(10.0)
+                                .inner_margin(12.0)
                                 .show(ui, |ui| {
                                     ui.set_width(ui.available_width());
                                     notes(ui);
@@ -957,6 +980,39 @@ mod tests {
         output.textures_delta.clear();
         assert!(text.contains("Update available"), "{text}");
         assert!(text.contains("Prueba 2.0.0 is available"), "{text}");
+        assert!(text.contains("You have 1.0.0."), "{text}");
+        assert!(updater.is_open());
+        frame(&mut updater, &ctx, vec![escape()]);
+        assert_eq!(updater.status(), &Status::Idle, "Escape closes it too");
+    }
+
+    #[test]
+    fn the_enterprise_offer_keeps_its_heading_and_says_which_version_you_have() {
+        let mut updater = Updater::new(APP)
+            .with_stamp(None)
+            .with_style(Style::Enterprise);
+        let ctx = egui::Context::default();
+        updater.offer(release());
+        let mut text = String::new();
+        for _ in 0..2 {
+            let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+                let _ = updater.show(ui.ctx(), Language::English, true);
+            });
+            text.clear();
+            for clipped in &output.shapes {
+                if let egui::epaint::Shape::Text(shape) = &clipped.shape {
+                    text.push_str(shape.galley.text());
+                    text.push('\n');
+                }
+            }
+            output.textures_delta.clear();
+        }
+        let lower = text.to_lowercase();
+        assert_eq!(
+            lower.matches("prueba 2.0.0 is available").count(),
+            1,
+            "the version is said once, in the heading: {text}"
+        );
         assert!(text.contains("You have 1.0.0."), "{text}");
         assert!(updater.is_open());
         frame(&mut updater, &ctx, vec![escape()]);

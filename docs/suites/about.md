@@ -1,6 +1,6 @@
 # Acerca de, igual en todas las apps
 
-Todas las apps egui de Nodalia (Office, creativas e ingeniería) muestran el mismo «Acerca de»: quien
+Todas las apps egui de Nodalia (Office, creativas, ingeniería y empresa) muestran el mismo «Acerca de»: quien
 abre el de una sabe dónde está cada cosa en las demás. Lo dibuja `nodalia_theme::about` (feature
 `creator` del crate `nodalia-theme`); la app solo pone sus textos, su marca y sus enlaces.
 

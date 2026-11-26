@@ -24,6 +24,8 @@ pub mod about;
 pub mod creator;
 #[cfg(feature = "engineering")]
 pub mod engineering;
+#[cfg(feature = "enterprise")]
+pub mod enterprise;
 #[cfg(feature = "egui")]
 pub mod for_egui;
 pub mod icons;
