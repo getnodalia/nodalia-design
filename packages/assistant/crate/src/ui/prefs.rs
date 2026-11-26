@@ -257,8 +257,10 @@ fn key_row(ui: &mut Ui, look: &Look, a: &mut Assistant) {
                     .to_string(),
             };
             office::hint(ui, look, &status);
-            if let Some(problem) = &a.keys.problem {
-                office::hint(ui, look, &lang.fill("Keychain: {error}", &[("error", problem)]));
+            // The keychain's own words are platform text in English, so the interface says it
+            // in its own words and the detail stays out of a translated window.
+            if a.keys.problem.is_some() && a.keys.state(provider) != KeyState::SessionOnly {
+                office::hint(ui, look, lang.t("The system keychain could not be read."));
             }
             if let Some(url) = provider.key_page() {
                 ui.hyperlink_to(lang.t("Get a key"), url);
