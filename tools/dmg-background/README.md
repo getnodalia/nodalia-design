@@ -15,6 +15,7 @@ propio que dice qué hace la app:
 | Letra | «Aa», líneas de texto y cursor | puntos guía y cursor |
 | Lienzo | capas con una pincelada y un pincel | pincelada |
 | Luz | diafragma e histograma | deslizador |
+| Orbe | esfera con su órbita sobre un suelo en perspectiva y los ejes del visor | satélite en órbita |
 | Papel | página con subrayado, firma y sello | marcador |
 | Pliego | pliego de dos páginas y retícula de columnas | marcos enlazados |
 | Pluma | curva de Bézier con manejadores y plumilla | trazado |

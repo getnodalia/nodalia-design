@@ -287,6 +287,42 @@ def m_luz(c, d):
     return "".join(o)
 
 
+def m_orbe(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    cx, cy, r = 112, 168, 62
+    hz = 236
+    # the floor of a scene in perspective: lines run to a vanishing point on the horizon
+    o.append(f'<rect x="0" y="{hz}" width="{AW}" height="{AH - hz}" fill="{d}" opacity="0.28"/>')
+    o.append(f'<line x1="0" y1="{hz}" x2="{AW}" y2="{hz}" stroke="{d}" stroke-width="2"/>')
+    for i in range(-5, 6):
+        o.append(f'<line x1="{cx}" y1="{hz}" x2="{cx + i * 70}" y2="{AH}" stroke="{d}" stroke-width="1.2"/>')
+    y, step = hz, 8.0
+    while y < AH:
+        y += step
+        step *= 1.38
+        o.append(f'<line x1="0" y1="{y:.1f}" x2="{AW}" y2="{y:.1f}" stroke="{d}" stroke-width="1.2"/>')
+    # its shadow, then the orb with a meridian and a parallel
+    o.append(f'<ellipse cx="{cx}" cy="{hz + 28}" rx="52" ry="11" fill="{d}"/>')
+    o.append(f'<g transform="rotate(-18 {cx} {cy})">')
+    o.append(f'<path d="M{cx - 96},{cy} A96,26 0 0 1 {cx + 96},{cy}" fill="none" stroke="{INK}" stroke-width="2.5" stroke-linecap="round"/>')
+    o.append('</g>')
+    o.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#FFFFFF" stroke="{INK}" stroke-width="2"/>')
+    o.append(f'<ellipse cx="{cx}" cy="{cy}" rx="{r}" ry="18" fill="none" stroke="{c}" stroke-width="2.5"/>')
+    o.append(f'<ellipse cx="{cx}" cy="{cy}" rx="24" ry="{r}" fill="none" stroke="{c}" stroke-width="2.5"/>')
+    # the near half of the orbit passes in front, with a satellite on it
+    o.append(f'<g transform="rotate(-18 {cx} {cy})">')
+    o.append(f'<path d="M{cx - 96},{cy} A96,26 0 0 0 {cx + 96},{cy}" fill="none" stroke="{INK}" stroke-width="2.5" stroke-linecap="round"/>')
+    o.append(f'<circle cx="{cx + 68}" cy="{cy + 18}" r="9" fill="{INK}"/>')
+    o.append('</g>')
+    # the three axes of the viewport gizmo
+    gx, gy = 34, 344
+    o.append(f'<line x1="{gx}" y1="{gy}" x2="{gx + 34}" y2="{gy}" stroke="{INK}" stroke-width="3" stroke-linecap="round"/>')
+    o.append(f'<line x1="{gx}" y1="{gy}" x2="{gx}" y2="{gy - 34}" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>')
+    o.append(f'<line x1="{gx}" y1="{gy}" x2="{gx + 20}" y2="{gy - 17}" stroke="{d}" stroke-width="3" stroke-linecap="round"/>')
+    o.append(f'<circle cx="{gx}" cy="{gy}" r="4" fill="#FFFFFF" stroke="{INK}" stroke-width="2"/>')
+    return "".join(o)
+
+
 def m_papel(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     x, y, w, h, f = 30, 46, 164, 232, 36
@@ -571,6 +607,12 @@ def a_luz(c):
             + arrowhead(AR, AYc, INK))
 
 
+def a_orbe(c):
+    return (f'<circle cx="{AL}" cy="{AYc}" r="5" fill="{c}"/>'
+            f'<path d="M{AL + 5},{AYc} C{AL + 24},{AYc - 20} {AR - 30},{AYc - 20} {AR - 10},{AYc}" fill="none" stroke="{INK}" stroke-width="1.6" stroke-dasharray="4 3"/>'
+            + arrowhead(AR, AYc, INK))
+
+
 def a_papel(c):
     return (f'<rect x="{AL}" y="{AYc - 6}" width="{AR - AL - 14}" height="12" rx="2" fill="{c}"/>'
             f'<line x1="{AL + 4}" y1="{AYc}" x2="{AR - 14}" y2="{AYc}" stroke="{INK}" stroke-width="2"/>'
@@ -641,6 +683,7 @@ APPS = {
     "letra": ("Letra", "Procesador de textos", "#3A9EE6", "#2479BD", m_letra, a_letra),
     "lienzo": ("Lienzo", "Edición de imagen", "#EE4F78", "#C7385E", m_lienzo, a_lienzo),
     "luz": ("Luz", "Revelado y biblioteca de fotos", "#F9A825", "#C9851A", m_luz, a_luz),
+    "orbe": ("Orbe", "Motor de videojuegos", "#E8B01C", "#B88708", m_orbe, a_orbe),
     "papel": ("Papel", "Documentos PDF", "#8794AD", "#5F6B84", m_papel, a_papel),
     "pliego": ("Pliego", "Maquetación de páginas", "#5A63E6", "#434BC0", m_pliego, a_pliego),
     "pluma": ("Pluma", "Ilustración vectorial", "#F2782F", "#C95F1E", m_pluma, a_pluma),
