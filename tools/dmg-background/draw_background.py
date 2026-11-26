@@ -162,6 +162,38 @@ def m_celdas(c, d):
     return "".join(o)
 
 
+def m_codigo(c, d):
+    o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
+    # the tab bar: two open files, the active one lifted
+    o.append(f'<rect x="0" y="0" width="{AW}" height="34" fill="{d}"/>')
+    o.append(f'<rect x="12" y="8" width="62" height="26" rx="8" fill="{c}"/>')
+    o.append(f'<rect x="22" y="18" width="34" height="5" rx="2.5" fill="#FFFFFF"/>')
+    o.append(f'<rect x="84" y="18" width="30" height="5" rx="2.5" fill="#FFFFFF" opacity="0.55"/>')
+    # the gutter with its line numbers, and the code: indentation, keywords in white, rest in the dark shade
+    o.append(f'<rect x="0" y="34" width="34" height="{AH - 34}" fill="{d}" opacity="0.5"/>')
+    rows = ((0, (46, 22)), (0, (20, 58, 30)), (1, (36, 44)), (1, (28, 70)), (2, (52, 24, 30)),
+            (1, (22, 66)), (0, (14,)), (0, (30, 40, 22)), (1, (44, 54)), (0, (24,)))
+    for i, (indent, parts) in enumerate(rows):
+        y = 56 + i * 21
+        o.append(f'<rect x="10" y="{y}" width="14" height="5" rx="2.5" fill="#FFFFFF" opacity="0.6"/>')
+        x = 46 + indent * 14
+        for j, w in enumerate(parts):
+            fill = "#FFFFFF" if j % 2 == 0 else d
+            o.append(f'<rect x="{x}" y="{y}" width="{w}" height="6" rx="3" fill="{fill}"/>')
+            x += w + 6
+    # the caret on the line being typed
+    o.append(f'<rect x="{46 + 14 + 36 + 6 + 44 + 6}" y="{56 + 3 * 21 - 5}" width="3" height="16" fill="{INK}"/>')
+    # the quality gate under the editor: a pill that says it passed
+    gy = 292
+    o.append(f'<rect x="14" y="{gy}" width="{AW - 28}" height="62" rx="14" fill="#FFFFFF"/>')
+    o.append(f'<circle cx="42" cy="{gy + 31}" r="14" fill="{c}"/>')
+    o.append(f'<path d="M35,{gy + 31} L40,{gy + 36} L49,{gy + 26}" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+    o.append(f'<rect x="66" y="{gy + 17}" width="88" height="7" rx="3.5" fill="{INK}"/>')
+    o.append(f'<rect x="66" y="{gy + 32}" width="120" height="5" rx="2.5" fill="{d}" opacity="0.55"/>')
+    o.append(f'<rect x="66" y="{gy + 43}" width="76" height="5" rx="2.5" fill="{d}" opacity="0.55"/>')
+    return "".join(o)
+
+
 def m_forja(c, d):
     o = [f'<rect width="{AW}" height="{AH}" fill="{c}"/>']
     for x in range(8, AW, 16):
@@ -565,6 +597,14 @@ def a_celdas(c):
     return "".join(o)
 
 
+def a_codigo(c):
+    # a caret, blinking in the line the arrow writes
+    o = [f'<rect x="{AL + i * 9}" y="{AYc - 2}" width="5" height="4" rx="2" fill="{c}"/>' for i in range(5)]
+    o.append(arrowhead(AR - 8, AYc, INK))
+    o.append(f'<rect x="{AR - 3}" y="{AYc - 11}" width="3" height="22" fill="{c}"/>')
+    return "".join(o)
+
+
 def a_forja(c):
     return (f'<line x1="{AL}" y1="{AYc - 10}" x2="{AL}" y2="{AYc + 10}" stroke="{INK}" stroke-width="1"/>'
             f'<line x1="{AL}" y1="{AYc}" x2="{AR - 10}" y2="{AYc}" stroke="{INK}" stroke-width="1.2"/>'
@@ -677,6 +717,7 @@ APPS = {
     "agora": ("Ágora", "Chat de equipo", "#0F7C80", "#0A5F63", m_agora, a_agora),
     "anima": ("Ánima", "Animación 2D", "#6B4CE8", "#5034C6", m_anima, a_anima),
     "celdas": ("Celdas", "Hojas de cálculo", "#2F9E5B", "#237A45", m_celdas, a_celdas),
+    "codigo": ("Código", "Editor de código con calidad integrada", "#0B9A80", "#087A66", m_codigo, a_codigo),
     "forja": ("Forja", "Dibujo técnico y CAD", "#C47A45", "#A86536", m_forja, a_forja),
     "hito": ("Hito", "Tareas, hitos y progreso", "#3D9A2B", "#2F7F20", m_hito, a_hito),
     "lamina": ("Lámina", "Presentaciones", "#B03C67", "#8C2D50", m_lamina, a_lamina),

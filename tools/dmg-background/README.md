@@ -9,6 +9,7 @@ propio que dice qué hace la app:
 | Ágora | lista de canales, conversación con reacción e hilo, y el candado sobre texto cifrado | bocadillo y puntos |
 | Ánima | arco de una pelota por tres poses, papel cebolla e interpolación en la línea de tiempo | pelota que bota |
 | Celdas | cuadrícula con una selección y su tirador | fila de celdas |
+| Código | editor con pestañas, números de línea, código y el cursor, y la puerta de calidad aprobada | cursor que escribe |
 | Forja | escuadra, arco y cota sobre papel milimetrado | línea de cota |
 | Hito | diagrama de Gantt con tareas rellenas según lo hecho, el hito al que van y el progreso total | hito sobre una línea de puntos |
 | Lámina | diapositivas apiladas con gráfico | miniaturas que crecen |
