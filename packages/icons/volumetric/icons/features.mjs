@@ -8,6 +8,7 @@ export default {
   "box": () => sc().box([-13, -13, -9], [13, 13, 9], { kind: A }),
   "cylinder": () => sc().cylinder([0, 0, -11], 13, 20, { kind: A }),
   "cone": () => sc({ cy: 36 }).turned({ at: [0, 0, -12], r0: 15, r1: 0, h0: 0, h1: 26, kind: A }),
+  "pyramid": () => sc({ cy: 36 }).turned({ at: [0, 0, -12], r0: 16, r1: 0, h0: 0, h1: 26, kind: A, n: 4, rot: 45 }),
   "sphere": () => sc({ cy: 32 }).sphere([0, 0, 0], 20, { kind: A }),
   "torus": () => sc({ cy: 32 }).torus([0, 0, 0], 13, 7, { kind: A }),
   "body": () => block(sc()).cylinder([4, -4, 4], 6, 7),
