@@ -81,9 +81,9 @@ Cada app Nodalia lleva como icono el retrato de una figura histórica ligada a l
 | Letra | Miguel de Cervantes | Trama | Charles Babbage |
 | Lienzo | Diego Velázquez | Vinilo | Ludwig van Beethoven |
 | Luz | Louis Daguerre | Vortia | Daniel Bernoulli |
-| Hito | Lillian Moller Gilbreth | Código | Grace Hopper |
+| Hito | Lillian Moller Gilbreth | Código | Alan Turing |
 | Orbe | Johannes Kepler | Circuito | Gustav Kirchhoff |
-| Ábaco | John Napier | | |
+| Ábaco | Carl Friedrich Gauss | | |
 
 `tools/app-portrait/portrait.py` hace la ilustración a partir del retrato descargado (ver su README); cada app la convierte en su SVG maestro y en todos sus tamaños, y nodalix-icon-theme la ajusta a la retícula de Colloid.
 
