@@ -43,6 +43,9 @@ def cut_out(image, model, extra, removed=None, matting=True):
         # polygon (pixels of SOURCE) adds it back.
         mask = Image.new('L', cut.size, 0)
         ImageDraw.Draw(mask).polygon(list(zip(extra[::2], extra[1::2])), fill=255)
+        # The model's colours under what it threw away are meaningless (grey), so the polygon
+        # takes the colours of the source itself.
+        cut = Image.composite(image.convert('RGBA'), cut, mask)
         cut.putalpha(ImageChops.lighter(cut.getchannel('A'), mask.filter(ImageFilter.GaussianBlur(3))))
     if removed:
         # Something beside the figure the model keeps (a doll, a frame): a polygon (pixels of
