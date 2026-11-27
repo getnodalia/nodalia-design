@@ -8,6 +8,6 @@ El asistente de IA de las apps de oficina de Nodalia (Letra, Celdas, Lámina): u
 - **Los cambios se previenen y se deshacen.** Por defecto cada herramienta que modifica el documento espera un «Aplicar» o «Omitir» con lo que va a hacer; al terminar un turno hay un «Deshacer» que revierte todo lo que hizo.
 - **El contenido del documento es un dato, nunca una instrucción.** El mensaje de sistema lo dice y, además, la aprobación manual es la barrera real.
 
-Con la *feature* `egui`, `nodalia_assistant::ui` dibuja el botón, el panel y la sección de Preferencias con `nodalia_theme::office::Look`. Las cadenas están en inglés y español (`Lang`).
+Cada proveedor se muestra con su marca real, sin modificar y en un solo color plano (`crate/assets/marks/`, con su origen y licencia). Con la *feature* `egui`, `nodalia_assistant::ui` dibuja el botón, el panel y la sección de Preferencias con `nodalia_theme::office::Look`. Las cadenas están en inglés y español (`Lang`).
 
 Especificación: [docs/suites/assistant.md](../../docs/suites/assistant.md).

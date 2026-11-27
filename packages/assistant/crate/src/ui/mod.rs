@@ -7,13 +7,14 @@
 //!
 //! ## Provider marks
 //!
-//! Anthropic, OpenAI and the other makers allow their logos only with permission, so the crate
-//! ships none. A provider is shown as a neutral badge with its initial. An app that has the
-//! right to use an official mark registers it with [`set_mark`] and it replaces the badge
+//! Each provider is shown with its own mark (see [`marks`]), in one flat colour that follows the
+//! theme, on a neutral badge. A provider with no mark of its own, such as a company gateway,
+//! shows an initial. An app can still replace any mark with [`set_mark`], and it takes effect
 //! everywhere.
 
 mod chat;
 pub mod markdown;
+pub mod marks;
 mod prefs;
 
 use std::sync::RwLock;
@@ -38,7 +39,7 @@ pub type Mark = fn(&Painter, Rect, Color32);
 
 static MARKS: RwLock<Vec<(Provider, Mark)>> = RwLock::new(Vec::new());
 
-/// Replaces `provider`'s badge with `mark`. Only for marks the app is allowed to use.
+/// Replaces `provider`'s own mark (or its initial) with `mark`.
 pub fn set_mark(provider: Provider, mark: Mark) {
     if let Ok(mut marks) = MARKS.write() {
         marks.retain(|(p, _)| *p != provider);
@@ -53,7 +54,7 @@ fn mark_of(provider: Provider) -> Option<Mark> {
         .and_then(|m| m.iter().find(|(p, _)| *p == provider).map(|(_, f)| *f))
 }
 
-/// The letter a provider's badge shows.
+/// The letter a provider's badge shows when it has no mark of its own.
 pub fn monogram(provider: Provider) -> &'static str {
     match provider {
         Provider::Claude => "C",
@@ -75,9 +76,10 @@ pub fn badge(painter: &Painter, look: &Look, rect: Rect, provider: Provider, act
         (color(p.control_bg), color(p.text_primary))
     };
     painter.rect_filled(rect, rect.height() * 0.3, fill);
+    let inner = rect.shrink(rect.height() * 0.22);
     if let Some(mark) = mark_of(provider) {
-        mark(painter, rect.shrink(rect.height() * 0.22), ink);
-    } else {
+        mark(painter, inner, ink);
+    } else if !marks::draw(painter, inner, provider, ink) {
         painter.text(
             rect.center(),
             Align2::CENTER_CENTER,
@@ -312,13 +314,13 @@ mod tests {
     }
 
     #[test]
-    fn a_registered_mark_replaces_the_badge() {
+    fn a_registered_mark_replaces_the_built_in_one() {
         fn mark(_: &Painter, _: Rect, _: Color32) {}
         assert!(mark_of(Provider::Mistral).is_none());
         set_mark(Provider::Mistral, mark);
         assert!(mark_of(Provider::Mistral).is_some());
         assert!(mark_of(Provider::Gemini).is_none());
-        // Every provider has a badge letter of its own.
+        // Every provider keeps a badge letter of its own, for when it has no mark.
         let mut letters: Vec<_> = Provider::ALL.iter().map(|p| monogram(*p)).collect();
         letters.sort_unstable();
         letters.dedup();

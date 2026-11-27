@@ -41,13 +41,16 @@ El modelo por defecto de Claude es `claude-sonnet-5-5`. Para los demás se pide 
 
 ## Marcas de los proveedores
 
-Anthropic, OpenAI y el resto exigen permiso previo para usar sus logotipos en productos de
-terceros y prohíben alterarlos o sugerir respaldo. Por eso **el crate no incluye ningún logotipo**:
-cada proveedor se muestra como una insignia neutra con su inicial (`ui::badge`), tintada con el
-acento de la app cuando el panel está abierto. Una app que tenga permiso por escrito para una marca
-oficial la registra con `ui::set_mark(proveedor, función)` y sustituye la insignia en todas partes.
-Los nombres de producto se usan de forma nominativa («Claude», «OpenAI»), nunca en el nombre de la
-app.
+Cada proveedor se muestra con su marca real (Claude, OpenAI, Gemini, Mistral, OpenRouter, Ollama),
+sin modificar, en un único color plano que sigue al tema, sobre una insignia neutra que se tinta con
+el acento de la app cuando el panel está abierto (`ui::badge`, `ui::marks`). Un proveedor sin marca
+propia, como un servidor de empresa, muestra su inicial. Las marcas están en
+`packages/assistant/crate/assets/marks/` con su origen y licencia (Simple Icons, CC0; OpenAI de Lobe
+Icons, MIT). La licencia de un archivo no cubre la marca: son marcas registradas de sus dueños y se
+usan solo para decir qué servicio ha elegido la persona conectar, de forma nominativa y sin sugerir
+respaldo. Si un dueño pide cambiarla o retirarla, se hace; una app puede sustituir cualquiera con
+`ui::set_mark(proveedor, función)`. Los nombres de producto se usan de forma nominativa
+(«Claude», «OpenAI»), nunca en el nombre de la app.
 
 ## Dónde va cada cosa (igual en las tres apps)
 

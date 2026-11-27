@@ -106,6 +106,7 @@ Los tests del paquete comprueban las cuatro primeras reglas.
 - Todo activo añadido al repositorio lleva autor, origen y licencia en un registro (`ATTRIBUTION.md`, que se crea con el primer activo).
 - Licencias admisibles: las compatibles con MIT y con redistribución (MIT, Apache-2.0, BSD, ISC, CC0, CC-BY con atribución, OFL para fuentes).
 - No se admiten activos sin licencia clara ni «uso libre solo personal».
+- Las marcas de proveedores de IA del asistente (`packages/assistant/crate/assets/marks/`) tienen su registro de origen y licencias en el README de esa carpeta. La licencia cubre el archivo, no la marca registrada de su dueño.
 
 ## Fuentes
 
