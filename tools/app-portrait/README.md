@@ -43,6 +43,16 @@ python3 tools/app-portrait/portrait.py "Joseph_Marie_Jacquard-portrait.jpg" tram
 # Ánima: Émile Cohl, foto de hacia 1885 (Wikimedia Commons, dominio público).
 python3 tools/app-portrait/portrait.py "Emile_Cohl_portrait.jpg" anima.png --box 0,20,1080,1100 \
   --colors '#6B4CE8' '#5034C6' --gamma 1.1
+
+# Código: Alan Turing a los 16 años, foto de pasaporte de 1928-1929 (Wikimedia Commons, dominio
+# público; el original de 675 × 919 px).
+python3 tools/app-portrait/portrait.py "Alan_Turing_Aged_16.jpg" codigo.png \
+  --box 30,10,670,650 --colors '#12B094' '#0B9A80'
+
+# Ábaco: Gauss, retrato de C. A. Jensen de 1840 (Wikimedia Commons, dominio público). Una pintura
+# oscura: --no-matting.
+python3 tools/app-portrait/portrait.py "Carl_Friedrich_Gauss_1840_by_Jensen.jpg" abaco.png \
+  --box 150,-30,1450,1270 --colors '#B84F8B' '#A23B72' --no-matting
 ```
 
 ## Del retrato a los archivos del icono
